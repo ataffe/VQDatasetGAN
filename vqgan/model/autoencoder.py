@@ -1,5 +1,4 @@
 import torch
-import cv2
 import pytorch_lightning as pl
 import torch.nn.functional as F
 from contextlib import contextmanager
@@ -10,6 +9,7 @@ from vqgan.model.distributions import DiagonalGaussianDistribution
 from vqgan.utils import instantiate_from_config
 from vqgan.model.ema import LitEma
 from torch.optim.lr_scheduler import LambdaLR
+from packaging import version
 
 
 class VQModel(pl.LightningModule):
@@ -78,7 +78,7 @@ class VQModel(pl.LightningModule):
                     print(f"{context}: Restored training weights")
 
     def init_from_ckpt(self, path, ignore_keys=list()):
-        sd = torch.load(path, map_location="cpu", weights_only=False)["state_dict"]
+        sd = torch.load(path, map_location="cpu")["state_dict"]
         keys = list(sd.keys())
         for k in keys:
             for ik in ignore_keys:
@@ -144,67 +144,30 @@ class VQModel(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         # https://github.com/pytorch/pytorch/issues/37142
         # try not to fool the heuristics
-        x_aug = self.get_input(batch, self.image_key)
-        x_orig = self.get_input(batch, "orig_img")
-        xrec, qloss, ind = self(x_aug, return_pred_indices=True)
+        x = self.get_input(batch, self.image_key)
+        xrec, qloss, ind = self(x, return_pred_indices=True)
         ae_opt, disc_opt = self.optimizers()
 
-        # autoencode
-        # aeloss, log_dict_ae = self.loss(qloss, x, xrec, optimizer_idx, self.global_step,
-        #                                 last_layer=self.get_last_layer(), split="train",
-        #                                 predicted_indices=ind)
+        # autoencoder
         self.toggle_optimizer(ae_opt)
-        ae_img_loss, log_dict_ae_img = self.loss(qloss,
-                                                x_orig[:, :3, :, :],
-                                                xrec[:, :3, :, :],
-                                                0,
-                                                self.global_step,
-                                                last_layer=self.get_last_layer(),
-                                                split="train")
+        aeloss, log_dict_ae = self.loss(qloss, x, xrec, 0, self.global_step,
+                                        last_layer=self.get_last_layer(), split="train")
 
-        ae_mask_loss, log_dict_ae_mask = self.loss(qloss,
-                                                  x_orig[:, 3, :, :].unsqueeze(1).repeat(1,3,1,1),
-                                                  xrec[:, 3, :, :].unsqueeze(1).repeat(1,3,1,1),
-                                                  0,
-                                                  self.global_step,
-                                                  last_layer=self.get_last_layer(),
-                                                  split="train")
-        ae_loss = ae_img_loss + ae_mask_loss
-        for key in log_dict_ae_img.keys():
-            log_dict_ae_img[key] += log_dict_ae_mask[key]
-        self.log_dict(log_dict_ae_img, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+        self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
         ae_opt.zero_grad()
-        ae_loss.backward()
+        aeloss.backward()
         ae_opt.step()
         self.untoggle_optimizer(ae_opt)
 
-
         # discriminator
         self.toggle_optimizer(disc_opt)
-        disc_img_loss, log_dict_disc_img = self.loss(qloss,
-                                                x_orig[:, :3, :, :],
-                                                xrec[:, :3, :, :],
-                                                1,
-                                                self.global_step,
-                                                last_layer=self.get_last_layer(),
-                                                split="train")
-
-        (disc_mask_loss, log_dict_disc_mask) = self.loss(qloss,
-                                                  x_orig[:, 3, :, :].unsqueeze(1).repeat(1, 3, 1, 1),
-                                                  xrec[:, 3, :, :].unsqueeze(1).repeat(1, 3, 1, 1),
-                                                  1,
-                                                  self.global_step,
-                                                  last_layer=self.get_last_layer(),
-                                                  split="train")
-        disc_loss = disc_img_loss + disc_mask_loss
-        for key in log_dict_disc_img.keys():
-            log_dict_disc_img[key] += log_dict_disc_mask[key]
-        self.log_dict(log_dict_disc_img, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+        discloss, log_dict_disc = self.loss(qloss, x, xrec, 1, self.global_step,
+                                        last_layer=self.get_last_layer(), split="train")
+        self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=True)
         disc_opt.zero_grad()
-        disc_loss.backward()
+        discloss.backward()
         disc_opt.step()
         self.untoggle_optimizer(disc_opt)
-        # return discloss
 
     def validation_step(self, batch, batch_idx):
         log_dict = self._validation_step(batch, batch_idx)
@@ -213,64 +176,26 @@ class VQModel(pl.LightningModule):
         return log_dict
 
     def _validation_step(self, batch, batch_idx, suffix=""):
-        x_aug = self.get_input(batch, self.image_key)
-        xrec, qloss, ind = self(x_aug, return_pred_indices=True)
-        x_orig = self.get_input(batch, "orig_img")
-        ae_img_loss, log_dict_ae_img = self.loss(qloss,
-                                                x_orig[:, :3, :, :],
-                                                xrec[:, :3, :, :],
-                                                0,
-                                                self.global_step,
-                                                last_layer=self.get_last_layer(),
-                                                split="val"+suffix)
+        x = self.get_input(batch, self.image_key)
+        xrec, qloss, ind = self(x, return_pred_indices=True)
+        aeloss, log_dict_ae = self.loss(qloss, x, xrec, 0,
+                                        self.global_step,
+                                        last_layer=self.get_last_layer(),
+                                        split="val"+suffix)
 
-        ae_mask_loss, log_dict_ae_mask = self.loss(qloss,
-                                                  x_orig[:, 3, :, :].unsqueeze(1).repeat(1,3,1,1),
-                                                  xrec[:, 3, :, :].unsqueeze(1).repeat(1,3,1,1),
-                                                  0,
-                                                  self.global_step,
-                                                  last_layer=self.get_last_layer(),
-                                                  split="val"+suffix)
-
-        disc_img_loss, log_dict_disc_img = self.loss(qloss,
-                                                x_orig[:, :3, :, :],
-                                                xrec[:, :3, :, :],
-                                                1,
-                                                self.global_step,
-                                                last_layer=self.get_last_layer(),
-                                                split="val"+suffix)
-
-        (disc_mask_loss, log_dict_disc_mask) = self.loss(qloss,
-                                                  x_orig[:, 3, :, :].unsqueeze(1).repeat(1, 3, 1, 1),
-                                                  xrec[:, 3, :, :].unsqueeze(1).repeat(1, 3, 1, 1),
-                                                  1,
-                                                  self.global_step,
-                                                  last_layer=self.get_last_layer(),
-                                                  split="val"+suffix)
-        for key in log_dict_ae_img:
-            log_dict_ae_img[key] += log_dict_ae_mask[key]
-        for key in log_dict_disc_img:
-            log_dict_disc_img[key] += log_dict_disc_mask[key]
-        aeloss = ae_img_loss + ae_mask_loss
-        rec_loss = log_dict_ae_img[f"val{suffix}/rec_loss"]
-        
-        image_psnr = cv2.PSNR(xrec[:, :3, :, :].cpu().numpy(), x_orig[:, :3, :, :].cpu().numpy(), 255.)
-        mask_psnr = cv2.PSNR(xrec[:, 3, :, :].unsqueeze(1).repeat(1, 3, 1, 1).cpu().numpy(),
-         x_orig[:, 3, :, :].unsqueeze(1).repeat(1, 3, 1, 1).cpu().numpy(), 255.)
-        self.log(f"val{suffix}/psnr", image_psnr,
-                   prog_bar=True, logger=True, on_step=False, on_epoch=True, sync_dist=True)
-        self.log(f"val{suffix}/mask_psnr", mask_psnr,
-                   prog_bar=True, logger=True, on_step=False, on_epoch=True, sync_dist=True)
-
+        discloss, log_dict_disc = self.loss(qloss, x, xrec, 1,
+                                            self.global_step,
+                                            last_layer=self.get_last_layer(),
+                                            split="val"+suffix)
+        rec_loss = log_dict_ae[f"val{suffix}/rec_loss"]
         self.log(f"val{suffix}/rec_loss", rec_loss,
                    prog_bar=True, logger=True, on_step=False, on_epoch=True, sync_dist=True)
         self.log(f"val{suffix}/aeloss", aeloss,
                    prog_bar=True, logger=True, on_step=False, on_epoch=True, sync_dist=True)
-        # if version.parse(pl.__version__) >= version.parse('1.4.0'):
-        del log_dict_ae_img[f"val{suffix}/rec_loss"]
-        del log_dict_ae_mask[f"val{suffix}/rec_loss"]
-        self.log_dict(log_dict_ae_img)
-        self.log_dict(log_dict_disc_img)
+        if version.parse(pl.__version__) >= version.parse('1.4.0'):
+            del log_dict_ae[f"val{suffix}/rec_loss"]
+        self.log_dict(log_dict_ae)
+        self.log_dict(log_dict_disc)
         return self.log_dict
 
     def configure_optimizers(self):
@@ -309,33 +234,30 @@ class VQModel(pl.LightningModule):
     def get_last_layer(self):
         return self.decoder.conv_out.weight
 
-
     def log_images(self, batch, only_inputs=False, plot_ema=False, **kwargs):
         log = dict()
-        x = self.get_input(batch, "orig_img")
+        x = self.get_input(batch, self.image_key)
         x = x.to(self.device)
         if only_inputs:
             log["inputs"] = x
             return log
         xrec, _ = self(x)
-        # TODO: I Think this is for generating images from masks, check on this later.
-        # if x.shape[1] > 3:
-        #     # colorize with random projection
-        #     assert xrec.shape[1] > 3
-        #     x = self.to_rgb(x)
-        #     xrec = self.to_rgb(xrec)
+        if x.shape[1] > 3:
+            # colorize with random projection
+            assert xrec.shape[1] > 3
+            x = self.to_rgb(x)
+            xrec = self.to_rgb(xrec)
         log["inputs"] = x
         log["reconstructions"] = xrec
         if plot_ema:
             with self.ema_scope():
                 xrec_ema, _ = self(x)
-                # TODO: I Think this is for generating images from masks, check on this later.
-                # if x.shape[1] > 3: xrec_ema = self.to_rgb(xrec_ema)
+                if x.shape[1] > 3: xrec_ema = self.to_rgb(xrec_ema)
                 log["reconstructions_ema"] = xrec_ema
         return log
 
     def to_rgb(self, x):
-        # assert self.image_key == "segmentation"
+        assert self.image_key == "segmentation"
         if not hasattr(self, "colorize"):
             self.register_buffer("colorize", torch.randn(3, x.shape[1], 1, 1).to(x))
         x = F.conv2d(x, weight=self.colorize)

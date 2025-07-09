@@ -9,8 +9,8 @@ model:
       double_z: False
       z_channels: 256
       resolution: 256
-      in_channels: 4
-      out_ch: 4
+      in_channels: 3
+      out_ch: 3
       ch: 128
       ch_mult: [ 1,1,2,2,4]  # num_down = len(ch_mult)-1
       num_res_blocks: 2
@@ -39,7 +39,7 @@ data:
     validation:
       target: vqgan.datasets.flim_dataset.FLImDataset
       params:
-        root_dir: "/mnt/bddd2eea-89b7-45b0-8345-df09af140cd6/SSD/FLImDataset-Large/images_512x512/validation"
+        root_dir: "/mnt/bddd2eea-89b7-45b0-8345-df09af140cd6/SSD/FLImDataset-Large/images_512x512/test"
         size: 256
 
 lightning:
