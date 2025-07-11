@@ -1,5 +1,6 @@
 from pathlib import Path
 import argparse
+from tqdm import tqdm
 
 def make_train_test_split(input_dir, train_split=80):
     input_dir = Path(input_dir)
@@ -21,9 +22,11 @@ def make_train_test_split(input_dir, train_split=80):
     train_dir.mkdir(parents=True, exist_ok=True)
     test_dir.mkdir(parents=True, exist_ok=True)
 
-    for img in train_images:
+    print("Creating training dataset")
+    for img in tqdm(train_images):
         img.rename(train_dir / img.name)
 
+    print("Creating test dataset")
     for img in test_images:
         img.rename(test_dir / img.name)
 
