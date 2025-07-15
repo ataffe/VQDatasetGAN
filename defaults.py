@@ -47,7 +47,7 @@ def get_default_callbacks_cfg(resume, now, logdir, ckptdir, cfgdir, config, ligh
             }
         },
         "image_logger": {
-            "target": "vqgan.loggers.ImageLogger",
+            "target": "loggers.ImageLogger",
             "params": {
                 "batch_frequency": 750,
                 "max_images": 4,
@@ -55,7 +55,7 @@ def get_default_callbacks_cfg(resume, now, logdir, ckptdir, cfgdir, config, ligh
             }
         },
         "learning_rate_logger": {
-            "target": "vqgan.loggers.LearningRateMonitor",
+            "target": "loggers.LearningRateMonitor",
             "params": {
                 "logging_interval": "step",
                 # "log_momentum": True

@@ -35,7 +35,6 @@ class ImageLogger(Callback):
         for k in images:
             grid = torchvision.utils.make_grid(images[k])
             grid = (grid + 1.0) / 2.0  # -1,1 -> 0,1; c,h,w
-
             tag = f"{split}/{k}"
             pl_module.logger.experiment.add_image(
                 tag, grid,
@@ -46,10 +45,6 @@ class ImageLogger(Callback):
                   global_step, current_epoch, batch_idx, image_type='images'):
         root = os.path.join(save_dir, "images", split)
         for img_key in images:
-            if len(images[img_key].shape) == 3 or images[img_key].shape[1] < 3:
-                images[img_key] = images[img_key].unsqueeze(1).repeat(1, 3, 1, 1)
-            elif len(images[img_key].shape) == 2:
-                images[img_key] = images[img_key].unsqueeze(1).repeat(1, 3, 1)
             grid = torchvision.utils.make_grid(images[img_key], nrow=4)
             if self.rescale:
                 grid = (grid + 1.0) / 2.0  # -1,1 -> 0,1; c,h,w
@@ -80,15 +75,6 @@ class ImageLogger(Callback):
             with torch.no_grad():
                 images = pl_module.log_images(batch, split=split, **self.log_images_kwargs)
 
-            tmp = {}
-            if self.autoencoder:
-                for img_key in images:
-                    print(f'{img_key} shape: {images[img_key].shape}')
-                    tmp[img_key + '_mask'] = images[img_key][:, 3, :, :].unsqueeze(1).repeat(1, 3, 1, 1)
-                    tmp[img_key] = images[img_key][:, :3, :, :]
-                images = tmp
-
-            # images = tmp
             for k in images:
                 N = min(images[k].shape[0], self.max_images)
                 images[k] = images[k][:N]

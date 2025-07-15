@@ -852,7 +852,6 @@ class LatentDiffusion(DDPM):
                    plot_diffusion_rows=True, **kwargs):
 
         use_ddim = ddim_steps is not None
-
         log = dict()
         z, c, x, xrec, xc = self.get_input(batch, self.first_stage_key,
                                            return_first_stage_outputs=True,

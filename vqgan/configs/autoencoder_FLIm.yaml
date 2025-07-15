@@ -45,7 +45,7 @@ data:
 lightning:
   callbacks:
     image_logger:
-      target: vqgan.loggers.ImageLogger
+      target: loggers.ImageLogger
       params:
         batch_frequency: 100
         max_images: 8
