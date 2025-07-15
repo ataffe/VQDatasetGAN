@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 from vqgan.model.blocks import ResnetBlock
-from vqgan.model.attention import make_attn
+from attention import make_attn
 from vqgan.model.ops import Normalize, Downsample, nonlinearity
 
 class Encoder(nn.Module):
