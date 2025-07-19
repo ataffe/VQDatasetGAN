@@ -619,7 +619,8 @@ class LatentDiffusion(DDPM):
         if self.parameterization == "x0":
             target = x_start
         elif self.parameterization == "eps":
-            target = noise
+            # target = noise
+            target = x_noisy
         else:
             raise NotImplementedError()
 

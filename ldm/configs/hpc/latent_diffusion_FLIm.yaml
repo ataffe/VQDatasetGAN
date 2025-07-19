@@ -39,7 +39,7 @@ model:
       params:
         embed_dim: 256
         n_embed: 1024
-        ckpt_path: logs/2025-07-10T20-51-55_autoencoder_FLIm/checkpoints/last.ckpt
+        ckpt_path: logs/2025-07-10T20-51-55_autoencoder_FLIm/checkpoints/vqgan.ckpt
         ddconfig:
           double_z: false
           z_channels: 256
@@ -77,7 +77,7 @@ data:
 lightning:
   callbacks:
     image_logger:
-      target: vqgan.loggers.ImageLogger
+      target: loggers.ImageLogger
       params:
         batch_frequency: 10000
         max_images: 8
