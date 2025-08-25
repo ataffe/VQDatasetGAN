@@ -1,14 +1,14 @@
 model:
   base_learning_rate: 4.5e-6
   # From: https://github.com/CompVis/taming-transformers/blob/3ba01b241669f5ade541ce990f7650a3b8f65318/configs/faceshq_vqgan.yaml
-  target: vqgan.model.autoencoder.VQModel
+  target: vqgan.model.vqvae.VQModel
   params:
     embed_dim: 256
     n_embed: 1024
     ddconfig:
       double_z: False
       z_channels: 256
-      resolution: 256
+      resolution: 512
       in_channels: 3
       out_ch: 3
       ch: 128
@@ -34,13 +34,13 @@ data:
     train:
       target: datasets.flim_dataset.FLImDataset
       params:
-        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/images_512x512/train"
-        size: 256
+        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgical-tool-dataset"
+        size: 512
     validation:
       target: datasets.flim_dataset.FLImDataset
       params:
-        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/images_512x512/test"
-        size: 256
+        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgical-tool-test-dataset"
+        size: 512
 
 lightning:
   callbacks:

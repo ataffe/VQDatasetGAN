@@ -72,7 +72,7 @@ if __name__ == "__main__":
             trainer_config = lightning_config.get("trainer", OmegaConf.create())
             # default to ddp
             trainer_config["accelerator"] = "auto"
-            # trainer_config["gpus"] = 1
+            trainer_config["gpus"] = 3
             for k in nondefault_trainer_args(opt):
                 trainer_config[k] = getattr(opt, k)
             if not "gpus" in trainer_config:
