@@ -34,7 +34,7 @@ def make_train_test_split(input_dir, train_split=80):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("input_dir", type=str, help="Directory containing the images.")
+    parser.add_argument("--input_dir", type=str, help="Directory containing the images.")
     parser.add_argument("--train-split", type=int, default=80, help="Percentage of images to use for training (default: 80).")
     args = parser.parse_args()
     make_train_test_split(args.input_dir, args.train_split)

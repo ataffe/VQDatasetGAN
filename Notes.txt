@@ -1,0 +1,9 @@
+For the intuitive dataset, I tried to choose videos from different scenarios,
+ and remove empty frames that are all black. I used a small subset of the videos in the dataset,
+ I chose the following videos:
+
+case_113_video_part_002.mp4
+case_064_video_part_002.mp4
+case_033_video_part_002.mp4
+case_001_video_part_001.mp4
+case_000_video_part_001.mp4
