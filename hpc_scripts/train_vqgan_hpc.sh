@@ -11,4 +11,4 @@
 #SBATCH -e jobs/train_vqgan-%j.error
 module load conda3/4.X
 conda activate stylegan3
-srun python train.py --base vqgan/configs/autoencoder_FLIm.yaml -t --no-test
+srun python ../train.py --base ../vqgan/configs/autoencoder_FLIm.yaml -t --no-test

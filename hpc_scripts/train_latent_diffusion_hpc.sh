@@ -11,4 +11,4 @@
 #SBATCH -e jobs/train_ldm-%j.error
 module load conda3/4.X
 conda activate stylegan3
-python train.py --base ldm/configs/hpc/latent_diffusion_FLIm.yaml -t --gpus 1 --no-test
+python ../train.py --base ../ldm/configs/hpc/latent_diffusion_FLIm.yaml -t --gpus 1 --no-test
