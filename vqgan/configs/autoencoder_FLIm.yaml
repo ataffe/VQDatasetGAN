@@ -8,7 +8,7 @@ model:
     ddconfig:
       double_z: False
       z_channels: 256
-      resolution: 512
+      resolution: 256
       in_channels: 3
       out_ch: 3
       ch: 128
@@ -29,28 +29,28 @@ model:
 data:
   target: datasets.data_utils.DataModuleFromConfig
   params:
-    batch_size: 8
+    batch_size: 16
     wrap: False
     train:
       target: datasets.flim_dataset.FLImDataset
       params:
         root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgical-tool-dataset"
-        size: 512
+        size: 256
     validation:
       target: datasets.flim_dataset.FLImDataset
       params:
         root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgical-tool-test-dataset"
-        size: 512
+        size: 256
 
 lightning:
   callbacks:
     image_logger:
       target: loggers.ImageLogger
       params:
-        batch_frequency: 100
+        batch_frequency: 1000
         max_images: 8
         increase_log_steps: True
 
   trainer:
     benchmark: True
-    gpus: 1
+    gpus: 3

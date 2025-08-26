@@ -174,6 +174,12 @@ def get_parser(**parser_kwargs):
         default=True,
         help="scale base-lr by ngpu * batch_size * n_accumulate",
     )
+    parser.add_argument(
+        "--gpus",
+        type=int,
+        default=1,
+        help="number of gpus to use for training",
+    )
     return parser
 
 def log_txt_as_img(wh, xc, size=10):
