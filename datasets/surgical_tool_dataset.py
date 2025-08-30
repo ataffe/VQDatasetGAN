@@ -49,12 +49,11 @@ class ImagePaths(Dataset):
         image = image.convert("RGB")
         image = image.resize((self.size, self.size), resample=Image.Resampling.LANCZOS)
         image = np.array(image).astype(np.uint8)
-        orig_img = image.copy()
         processed = self.preprocessor(image=image)
         image = processed['image']
         # Normalize
         image = (image/127.5 - 1.0).astype(np.float32)
-        return {"image": image}
+        return {"image": image, "coord": image}
 
     def __getitem__(self, i):
         return self.preprocess_image(self.labels["file_path_"][i])
@@ -79,7 +78,7 @@ class DatasetBase(Dataset):
             ex = example
         return ex
 
-class FLImDataset(DatasetBase):
+class SurgicalToolDataset(DatasetBase):
     def __init__(self, size, root_dir, keys=None, crop_aug= False, geometric_aug=False, color_aug=False, aug_p=0.2):
         super().__init__()
         paths = [str(path) for path in list(Path(root_dir).rglob('*.jpg'))]
