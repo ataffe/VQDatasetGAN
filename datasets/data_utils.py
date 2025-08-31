@@ -1,4 +1,4 @@
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 from functools import partial
 from torch.utils.data import DataLoader, Dataset
 import  numpy as np

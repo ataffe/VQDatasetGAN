@@ -1,6 +1,6 @@
 model:
   base_learning_rate: 4.5e-06
-  target: taming.models.cond_transformer.Net2NetTransformer
+  target: transformer.cond_transformer.Net2NetTransformer
   params:
     cond_stage_key: coord
     transformer_config:
@@ -15,7 +15,7 @@ model:
         resid_pdrop: 0.1
         attn_pdrop: 0.1
     first_stage_config:
-      target: taming.models.vqgan.VQModel
+      target: vqgan.model.vqgan.VQModel
       params:
         ckpt_path: logs/2025-08-26T02-02-37_autoencoder_FLIm/checkpoints/last.ckpt
         embed_dim: 256
@@ -50,6 +50,7 @@ data:
   params:
     batch_size: 16
     wrap: False
+    num_workers: 4
     train:
       target: datasets.surgical_tool_dataset.SurgicalToolDataset
       params:

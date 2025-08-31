@@ -2,7 +2,7 @@ from vqgan.model.encoder import Encoder
 from vqgan.model.decoder import Decoder
 from utils import instantiate_from_config
 import torch
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 from distributions import DiagonalGaussianDistribution
 
 

@@ -41,19 +41,24 @@ class ImagePaths(Dataset):
         else:
             self.preprocessor = lambda **kwargs: kwargs
 
+        self.cropper = albumentations.RandomCrop(height=self.size, width=self.size)
+        self.cropper = albumentations.Compose([self.cropper], additional_targets={"coord": "image"})
+
     def __len__(self):
         return self._length
 
     def preprocess_image(self, image_path):
         image = Image.open(image_path)
         image = image.convert("RGB")
-        image = image.resize((self.size, self.size), resample=Image.Resampling.LANCZOS)
+        if image.size[0] != self.size or image.size[1] != self.size:
+            image = image.resize((self.size, self.size), resample=Image.Resampling.LANCZOS)
         image = np.array(image).astype(np.uint8)
         processed = self.preprocessor(image=image)
         image = processed['image']
         # Normalize
         image = (image/127.5 - 1.0).astype(np.float32)
-        return {"image": image, "coord": image}
+        coord = np.arange(self.size*self.size).reshape(self.size, self.size, 1) / (self.size*self.size)
+        return {"image": image, "coord": coord}
 
     def __getitem__(self, i):
         return self.preprocess_image(self.labels["file_path_"][i])

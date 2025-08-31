@@ -1,18 +1,19 @@
 import datetime
 import sys
 import os
-from pytorch_lightning import seed_everything
-from pytorch_lightning.trainer import Trainer
+from lightning.pytorch import seed_everything
+from lightning.pytorch.trainer import Trainer
 from omegaconf import OmegaConf
 import argparse
 from utils import instantiate_from_config
 from packaging import version
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 from defaults import get_default_logger_cfgs, get_default_modelckpt_cfgs, get_default_callbacks_cfg
 import torch
 import signal
 import glob
 from utils import get_parser, nondefault_trainer_args
+from lightning.pytorch.strategies import DDPStrategy
 
 if __name__ == "__main__":
     print("Starting training...")
@@ -74,6 +75,7 @@ if __name__ == "__main__":
         # merge trainer cli with config
         trainer_config = lightning_config.get("trainer", OmegaConf.create())
         # default to ddp
+        # trainer_config["strategy"] = DDPStrategy(find_unused_parameters=True, static_graph=True, gradient_as_bucket_view=True)
         trainer_config["accelerator"] = "auto"
         trainer_config["devices"] = "auto"
         for k in nondefault_trainer_args(opt):
@@ -136,7 +138,7 @@ if __name__ == "__main__":
                 'Caution: Saving checkpoints every n train steps without deleting. This might require some free space.')
             default_metrics_over_trainsteps_ckpt_dict = {
                 'metrics_over_trainsteps_checkpoint':
-                    {"target": 'pytorch_lightning.callbacks.ModelCheckpoint',
+                    {"target": 'lightning.pytorch.callbacks.ModelCheckpoint',
                         'params': {
                             "dirpath": os.path.join(ckptdir, 'trainstep_checkpoints'),
                             "filename": "{epoch:06}-{step:09}",

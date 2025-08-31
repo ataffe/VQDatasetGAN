@@ -1,8 +1,8 @@
 import torchvision
 import torch
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint, LearningRateMonitor
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
-import pytorch_lightning as pl
+from lightning.pytorch.callbacks import Callback, ModelCheckpoint, LearningRateMonitor
+from lightning.pytorch.utilities.rank_zero import rank_zero_only
+import lightning.pytorch as pl
 import os
 from PIL import Image
 import numpy as np

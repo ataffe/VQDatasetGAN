@@ -2,7 +2,7 @@ def get_default_logger_cfgs(name, logdir, debug):
     # default logger configs
     return {
         "wandb": {
-            "target": "pytorch_lightning.loggers.WandbLogger",
+            "target": "lightning.pytorch.loggers.WandbLogger",
             "params": {
                 "name": name,
                 "save_dir": logdir,
@@ -11,7 +11,7 @@ def get_default_logger_cfgs(name, logdir, debug):
             }
         },
         "tensorboard": {
-            "target": "pytorch_lightning.loggers.TensorBoardLogger",
+            "target": "lightning.pytorch.loggers.TensorBoardLogger",
             "params": {
                 "save_dir": logdir,
             }
@@ -22,7 +22,7 @@ def get_default_logger_cfgs(name, logdir, debug):
 def get_default_modelckpt_cfgs(checkpoint_dir):
     # default model checkpoint configs
     return {
-        "target": "pytorch_lightning.callbacks.ModelCheckpoint",
+        "target": "lightning.pytorch.callbacks.ModelCheckpoint",
         "params": {
             "dirpath": checkpoint_dir,
             "filename": "{epoch:06}",

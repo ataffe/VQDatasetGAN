@@ -1,8 +1,8 @@
 import os
 from omegaconf import OmegaConf
-from pytorch_lightning.callbacks import Callback
+from lightning.pytorch.callbacks import Callback
 import torch
-from pytorch_lightning.utilities import rank_zero_info
+from lightning.pytorch.utilities import rank_zero_info
 import time
 
 class SetupCallback(Callback):

@@ -1,5 +1,5 @@
 import torch
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import torch.nn.functional as F
 from contextlib import contextmanager
 from taming.modules.vqvae.quantize import VectorQuantizer2 as VectorQuantizer
