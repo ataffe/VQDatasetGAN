@@ -210,7 +210,7 @@ vqgan/logs
 vqgan/taming
 logs
 jobs
-taming
 data
 log_archive
 yolo/runs
+taming/modules/autoencoder/lipips/vgg.pth

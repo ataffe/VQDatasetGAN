@@ -14,9 +14,12 @@ import signal
 import glob
 from utils import get_parser, nondefault_trainer_args
 from lightning.pytorch.strategies import DDPStrategy
+import sys
 
 if __name__ == "__main__":
     print("Starting training...")
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"path: {sys.path}")    
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     sys.path.append(os.getcwd())
     parser = get_parser()
@@ -162,7 +165,7 @@ if __name__ == "__main__":
         trainer_args = {**trainer_kwargs, **trainer_config}
         if 'gpus' in trainer_args:
             del trainer_args['gpus']
-        trainer = Trainer(**trainer_args)
+        trainer = Trainer(**trainer_args, strategy=DDPStrategy(find_unused_parameters=True, static_graph=True, gradient_as_bucket_view=True))
         trainer.logdir = logdir  ###
         print(f'Training for {trainer.max_epochs} min epochs.')
 

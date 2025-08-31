@@ -6,8 +6,31 @@ import torch.nn.functional as F
 from torch import nn, einsum
 from einops import rearrange, repeat
 from utils import checkpoint
-from ldm.diffusion_utils import conv_nd, normalization
 import numpy as np
+
+def conv_nd(dims, *args, **kwargs):
+    """
+    Create a 1D, 2D, or 3D convolution module.
+    """
+    if dims == 1:
+        return nn.Conv1d(*args, **kwargs)
+    elif dims == 2:
+        return nn.Conv2d(*args, **kwargs)
+    elif dims == 3:
+        return nn.Conv3d(*args, **kwargs)
+    raise ValueError(f"unsupported dimensions: {dims}")
+
+class GroupNorm32(nn.GroupNorm):
+    def forward(self, x):
+        return super().forward(x.float()).type(x.dtype)
+
+def normalization(channels):
+    """
+    Make a standard normalization layer.
+    :param channels: number of input channels.
+    :return: an nn.Module for normalization.
+    """
+    return GroupNorm32(32, channels)
 
 class LinearAttention(nn.Module):
     def __init__(self, dim, heads=4, dim_head=32):
