@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn, einsum
 from einops import rearrange, repeat
-from utils import checkpoint
+from training_utils import checkpoint
 import numpy as np
 
 def conv_nd(dims, *args, **kwargs):
