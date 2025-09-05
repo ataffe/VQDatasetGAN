@@ -1,18 +1,17 @@
 import datetime
-import sys
 import os
 from lightning.pytorch import seed_everything
 from lightning.pytorch.trainer import Trainer
 from omegaconf import OmegaConf
 import argparse
-from utils import instantiate_from_config
+from training_utils import instantiate_from_config
 from packaging import version
 import lightning.pytorch as pl
-from defaults import get_default_logger_cfgs, get_default_modelckpt_cfgs, get_default_callbacks_cfg
+from vqgan.defaults import get_default_logger_cfgs, get_default_modelckpt_cfgs, get_default_callbacks_cfg
 import torch
 import signal
 import glob
-from utils import get_parser, nondefault_trainer_args
+from training_utils import get_parser, nondefault_trainer_args
 from lightning.pytorch.strategies import DDPStrategy
 import sys
 

@@ -5,9 +5,8 @@ from contextlib import contextmanager
 from taming.modules.vqvae.quantize import VectorQuantizer2 as VectorQuantizer
 from vqgan.model.encoder import Encoder
 from vqgan.model.decoder import Decoder
-from distributions import DiagonalGaussianDistribution
-from utils import instantiate_from_config
-from ema import LitEma
+from training_utils import instantiate_from_config
+from vqgan.ema import LitEma
 from torch.optim.lr_scheduler import LambdaLR
 from packaging import version
 

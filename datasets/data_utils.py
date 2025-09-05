@@ -2,7 +2,7 @@ import lightning.pytorch as pl
 from functools import partial
 from torch.utils.data import DataLoader, Dataset
 import  numpy as np
-from utils import instantiate_from_config
+from training_utils import instantiate_from_config
 import torch
 from torch.utils.data import IterableDataset
 from abc import abstractmethod

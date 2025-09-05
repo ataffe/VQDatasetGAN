@@ -1,9 +1,9 @@
 from vqgan.model.encoder import Encoder
 from vqgan.model.decoder import Decoder
-from utils import instantiate_from_config
+from training_utils import instantiate_from_config
 import torch
 import lightning.pytorch as pl
-from distributions import DiagonalGaussianDistribution
+from vqgan.distributions import DiagonalGaussianDistribution
 
 
 class AutoencoderKL(pl.LightningModule):

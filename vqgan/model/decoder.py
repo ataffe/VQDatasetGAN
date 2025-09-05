@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from vqgan.model.blocks import ResnetBlock
-from attention import make_attn
+from vqgan.attention import make_attn
 from vqgan.model.ops import Upsample, Normalize, nonlinearity
 
 class Decoder(nn.Module):
