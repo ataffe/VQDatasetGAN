@@ -64,6 +64,11 @@ class VQDatasetGAN(nn.Module):
         self.mid_feature_size = 128
         self.high_feature_size = 512
 
+        low_feature_channel = 128
+        mid_feature_channel = 64
+        high_feature_channel = 32
+
+
 
 
     def _prepare_vqgan_decoder_model(self):

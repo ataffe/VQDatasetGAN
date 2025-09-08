@@ -167,19 +167,27 @@ class BigdatasetGANModel(nn.Module):
     @torch.no_grad()
     def _get_biggan_features(self, z, y):
         features = []
+        # y - (1,128)
+        # z - (1, 128)
         y = self.biggan_model.shared(y)
         # forward thru biggan
         # If hierarchical, concatenate zs and ys
         if self.biggan_model.hier:
             zs = torch.split(z, self.biggan_model.z_chunk_size, 1)
+            # Z - (1, 16)
             z = zs[0]
+            # ys - list(item1 - (1, 144)...) list size = 7
             ys = [torch.cat([y, item], 1) for item in zs[1:]]
         else:
             ys = [y] * len(self.biggan_model.blocks)
         
         # First linear layer
+        # h - (1, 24576)
         h = self.biggan_model.linear(z)
         # Reshape
+        # self.biggan_model.bottom_width = 4
+        # h = (1, 1536, 4, 4)
+        # The initial spatial dimensions
         h = h.view(h.size(0), -1, self.biggan_model.bottom_width, self.biggan_model.bottom_width)
         
         # Loop over blocks, num blocks = 7
