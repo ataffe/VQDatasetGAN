@@ -21,7 +21,7 @@ def parse_args():
         '--resolution', '-r', type=int, default=512,
         help='Resolution of the generated images, we use biggan-512 by default')
     parser.add_argument(
-        '--ckpt', type=str, required=True, 
+        '--ckpt', type=str, required=False,
         help='Path to the pretrained BigDatasetGAN weights')
     parser.add_argument(
         '--save_dir', type=str, default='./generated_datasets/',
@@ -47,8 +47,8 @@ def main(args):
     model = BigdatasetGANModel(resolution=args.resolution, out_dim=1, biggan_ckpt=None)
 
     # load pretrain model
-    state_dict = torch.load(args.ckpt)
-    model.load_state_dict(state_dict, strict=False) # Ignore missing sv0 entries
+    # state_dict = torch.load(args.ckpt)
+    # model.load_state_dict(state_dict, strict=False) # Ignore missing sv0 entries
 
     model = model.to(device)
     model = model.eval()

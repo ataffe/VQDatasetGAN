@@ -149,6 +149,7 @@ class Generator(nn.Module):
     self.shared = (self.which_embedding(n_classes, self.shared_dim) if G_shared 
                     else layers.identity())
     # First linear layer
+    # dim_z = 128 for res 512
     self.linear = self.which_linear(self.dim_z // self.num_slots,
                                     self.arch['in_channels'][0] * (self.bottom_width **2))
 

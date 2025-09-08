@@ -182,7 +182,7 @@ class BigdatasetGANModel(nn.Module):
         # Reshape
         h = h.view(h.size(0), -1, self.biggan_model.bottom_width, self.biggan_model.bottom_width)
         
-        # Loop over blocks
+        # Loop over blocks, num blocks = 7
         for index, blocklist in enumerate(self.biggan_model.blocks):
             # Second inner loop in case block has multiple layers
             for block in blocklist:
@@ -238,6 +238,4 @@ class BigdatasetGANModel(nn.Module):
 
 
 if __name__ == '__main__':
-
-    biggan_ckpt = './pretrain/biggan-512.pth'
-    model = BigdatasetGANModel(512, 1, biggan_ckpt).cuda()
+    model = BigdatasetGANModel(512, 1).cuda()
