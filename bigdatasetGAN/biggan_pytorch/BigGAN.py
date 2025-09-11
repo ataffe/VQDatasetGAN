@@ -1,5 +1,3 @@
-import numpy as np
-import math
 import functools
 
 import torch
@@ -7,10 +5,8 @@ import torch.nn as nn
 from torch.nn import init
 import torch.optim as optim
 import torch.nn.functional as F
-from torch.nn import Parameter as P
 
-import layers
-from sync_batchnorm import SynchronizedBatchNorm2d as SyncBatchNorm2d
+import bigdatasetGAN.biggan_pytorch.layers as layers
 
 
 # Architectures for G

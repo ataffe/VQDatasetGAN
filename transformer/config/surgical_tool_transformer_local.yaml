@@ -17,7 +17,7 @@ model:
     first_stage_config:
       target: vqgan.model.vqgan.VQModel
       params:
-        ckpt_path: logs/2025-08-26T02-02-37_autoencoder_FLIm/checkpoints/last.ckpt
+        ckpt_path: /mnt/bddd2eea-89b7-45b0-8345-df09af140cd6/research/surgical-tool-gen/Checkpoints/vqgan/vqgan_surgical_tools.ckpt
         embed_dim: 256
         n_embed: 1024
         ddconfig:
@@ -48,16 +48,16 @@ model:
 data:
   target: biggan_datasets.data_utils.DataModuleFromConfig
   params:
-    batch_size: 16
+    batch_size: 2
     wrap: False
-    num_workers: 4
+    num_workers: 2
     train:
       target: biggan_datasets.surgical_tool_dataset.SurgicalToolDataset
       params:
-        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgical-tool-dataset"
+        root_dir: "/mnt/bddd2eea-89b7-45b0-8345-df09af140cd6/SSD/SurgicalToolDataset/originals/flim-dataset-original"
         size: 256
-    validation:
-      target: biggan_datasets.surgical_tool_dataset.SurgicalToolDataset
-      params:
-        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgical-tool-test-dataset"
-        size: 256
+#    validation:
+#      target: biggan_datasets.surgical_tool_dataset.SurgicalToolDataset
+#      params:
+#        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgical-tool-test-dataset"
+#        size: 256

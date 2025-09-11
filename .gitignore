@@ -214,3 +214,4 @@ data
 log_archive
 yolo/runs
 taming/modules/autoencoder/lipips/vgg.pth
+taming/samples

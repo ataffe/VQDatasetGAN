@@ -1,5 +1,5 @@
 ''' Datasets
-    This file contains definitions for our CIFAR, ImageFolder, and HDF5 datasets
+    This file contains definitions for our CIFAR, ImageFolder, and HDF5 biggan_datasets
 '''
 import os
 import os.path
@@ -332,7 +332,7 @@ class CIFAR10(dset.CIFAR10):
     """
     img, target = self.data[index], self.labels[index]
 
-    # doing this so that it is consistent with all other datasets
+    # doing this so that it is consistent with all other biggan_datasets
     # to return a PIL Image
     img = Image.fromarray(img)
 

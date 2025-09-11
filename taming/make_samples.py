@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from omegaconf import OmegaConf
 from PIL import Image
-from main import instantiate_from_config, DataModuleFromConfig
+from training_utils import instantiate_from_config
 from torch.utils.data.dataloader import default_collate
 from tqdm import trange
 
@@ -12,7 +12,7 @@ def save_image(x, path):
     c,h,w = x.shape
     assert c==3
     x = ((x.detach().cpu().numpy().transpose(1,2,0)+1.0)*127.5).clip(0,255).astype(np.uint8)
-    Image.fromarray(x).save(path)
+    Image.fromarray(x).resize((512, 512), resample=Image.Resampling.LANCZOS).save(path)
 
 
 @torch.no_grad()
@@ -23,7 +23,7 @@ def run_conditional(model, dsets, outdir, top_k, temperature, batch_size=1):
     else:
         dset = next(iter(dsets.datasets.values()))
     print("Dataset: ", dset.__class__.__name__)
-    for start_idx in trange(0,len(dset)-batch_size+1,batch_size):
+    for start_idx in trange(0,90,batch_size):
         indices = list(range(start_idx, start_idx+batch_size))
         example = default_collate([dset[i] for i in indices])
 
@@ -152,7 +152,7 @@ def get_parser():
         "--ignore_base_data",
         action="store_true",
         help="Ignore data specification from base configs. Useful if you want "
-        "to specify a custom datasets on the command line.",
+        "to specify a custom biggan_datasets on the command line.",
     )
     parser.add_argument(
         "--outdir",
@@ -242,21 +242,26 @@ if __name__ == "__main__":
     if opt.resume:
         if not os.path.exists(opt.resume):
             raise ValueError("Cannot find {}".format(opt.resume))
-        if os.path.isfile(opt.resume):
-            paths = opt.resume.split("/")
-            try:
-                idx = len(paths)-paths[::-1].index("logs")+1
-            except ValueError:
-                idx = -2 # take a guess: path/to/logdir/checkpoints/model.ckpt
-            logdir = "/".join(paths[:idx])
-            ckpt = opt.resume
-        else:
-            assert os.path.isdir(opt.resume), opt.resume
-            logdir = opt.resume.rstrip("/")
-            ckpt = os.path.join(logdir, "checkpoints", "last.ckpt")
-        print(f"logdir:{logdir}")
-        base_configs = sorted(glob.glob(os.path.join(logdir, "configs/*-project.yaml")))
-        opt.base = base_configs+opt.base
+        # if os.path.isfile(opt.resume):
+        #     paths = opt.resume.split("/")
+        #     try:
+        #         idx = len(paths)-paths[::-1].index("logs")+1
+        #     except ValueError:
+        #         idx = -2 # take a guess: path/to/logdir/checkpoints/model.ckpt
+        #     logdir = "/".join(paths[:idx])
+        #     ckpt = opt.resume
+        # elif ".ckpt" in opt.resume:
+        #     ckpt = opt.resume
+        #     logdir = "/".join(opt.resume.split("/")[:-1])
+        # else:
+        #     assert os.path.isdir(opt.resume), opt.resume
+        #     logdir = opt.resume.rstrip("/")
+        #     ckpt = os.path.join(logdir, "checkpoints", "last.ckpt")
+        ckpt = opt.resume
+        # logdir = "/".join(opt.resume.split("/")[:-1])
+        # print(f"logdir:{logdir}")
+        # base_configs = sorted(glob.glob(os.path.join(logdir, "configs/*-project.yaml")))
+        # opt.base = base_configs+opt.base
 
     if opt.config:
         if type(opt.config) == str:

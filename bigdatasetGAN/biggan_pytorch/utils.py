@@ -535,11 +535,11 @@ def get_data_loaders(dataset, data_root=None, augment=False, batch_size=64,
   norm_mean = [0.5,0.5,0.5]
   norm_std = [0.5,0.5,0.5]
   image_size = imsize_dict[dataset]
-  # For image folder datasets, name of the file where we store the precomputed
+  # For image folder biggan_datasets, name of the file where we store the precomputed
   # image locations to avoid having to walk the dirs every time we load.
   dataset_kwargs = {'index_filename': '%s_imgs.npz' % dataset}
   
-  # HDF5 datasets have their own inbuilt transform, no need to train_transform  
+  # HDF5 biggan_datasets have their own inbuilt transform, no need to train_transform
   if 'hdf5' in dataset:
     train_transform = None
   else:

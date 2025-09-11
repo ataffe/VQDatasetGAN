@@ -4,6 +4,8 @@ import torch
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 from inspect import isfunction
+import os
+import sys
 
 def nondefault_trainer_args(opt):
     parser = argparse.ArgumentParser()
@@ -60,6 +62,8 @@ def checkpoint(func, inputs, params, flag):
 
 def get_obj_from_str(string, reload=False):
     module, cls = string.rsplit(".", 1)
+    print(f'Module: {module}, Class: {cls}')
+    print(f'Module found: {module in sys.modules}')
     if reload:
         module_imp = importlib.import_module(module)
         importlib.reload(module_imp)

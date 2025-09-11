@@ -19,7 +19,7 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 
 from models import BigdatasetGANModel
-from datasets.datasets import ImagenetDataset
+from biggan_datasets.datasets import ImagenetDataset
 from utils import VOCColorize
 
 def parse_args():

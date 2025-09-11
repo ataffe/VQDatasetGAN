@@ -32,7 +32,8 @@ class Net2NetTransformer(pl.LightningModule):
         self.sos_token = sos_token
         self.first_stage_key = first_stage_key
         self.cond_stage_key = cond_stage_key
-        self.init_first_stage_from_ckpt(first_stage_config)
+        if first_stage_config is not None:
+            self.init_first_stage_from_ckpt(first_stage_config)
         self.init_cond_stage_from_ckpt(cond_stage_config)
         if permuter_config is None:
             permuter_config = {"target": "taming.modules.transformer.permuter.Identity"}
