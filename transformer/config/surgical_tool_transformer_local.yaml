@@ -46,13 +46,13 @@ model:
         down_factor: 16
 
 data:
-  target: biggan_datasets.data_utils.DataModuleFromConfig
+  target: datasets.data_utils.DataModuleFromConfig
   params:
     batch_size: 2
     wrap: False
     num_workers: 2
     train:
-      target: biggan_datasets.surgical_tool_dataset.SurgicalToolDataset
+      target: datasets.surgical_tool_dataset.SurgicalToolDataset
       params:
         root_dir: "/mnt/bddd2eea-89b7-45b0-8345-df09af140cd6/SSD/SurgicalToolDataset/originals/flim-dataset-original"
         size: 256

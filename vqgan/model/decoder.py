@@ -22,6 +22,7 @@ class Decoder(nn.Module):
         self.tanh_out = tanh_out
 
         # compute in_ch_mult, block_in and curr_res at lowest res
+        # block_in = 128*4 = 512
         in_ch_mult = (1,)+tuple(ch_mult)
         block_in = ch*ch_mult[self.num_resolutions-1]
         curr_res = resolution // 2**(self.num_resolutions-1)
@@ -49,6 +50,32 @@ class Decoder(nn.Module):
                                        dropout=dropout)
 
         # upsampling
+        # curr_res = 256 (2^8) / 2^(4) = 2^4  = 16
+        # block_in = 512
+        # ch = 128, ch_mult = [1,1,2,2,4]
+        # i_level = 4
+            # block_out = 4 * 128 = 512
+            # i_block = 0
+                # ResnetBlock(512, 512)
+            # block_in = 512
+        # i_level = 3
+            # block_out = 128 * 2 = 256
+            # cur_res = 32
+        # i_level = 2
+            # block_out = 128 * 2 = 256
+            # cur_res = 64
+        # i_level = 1
+            # block_out = 128 * 1 = 128
+            # cur_res = 128
+        # i_level = 0
+            # block_out = 128
+            # cur_res = 256
+
+        # up[up_0{res=16,ResnetBlock0(512,512), ResnetBlock(512, 512), attn(512)}, -> 16 x 16
+        # up1{res=16, ResnetBlock(512, 256), ResnetBlock(256, 256), attn(256), Upsample(256)}, -> 32 x 32
+        # up2{res=32, ResnetBlock(256, 256), ResnetBlock(256, 256), Upsample(256)}, -> 64 x 64
+        # up3{res=64, ResnetBlock(256, 128), ResnetBlock(128, 128), Upsample(128)}, -> 128 x 128
+        # up4{res=128, ResnetBlock(128, 128, ResnetBlock(128, 128), Upsample(128)}] -> 256 x 256
         self.up = nn.ModuleList()
         for i_level in reversed(range(self.num_resolutions)):
             block = nn.ModuleList()

@@ -6,7 +6,7 @@ from PIL import Image
 from training_utils import instantiate_from_config
 from torch.utils.data.dataloader import default_collate
 from tqdm import trange
-
+import random
 
 def save_image(x, path):
     c,h,w = x.shape
@@ -16,43 +16,50 @@ def save_image(x, path):
 
 
 @torch.no_grad()
-def run_conditional(model, dsets, outdir, top_k, temperature, batch_size=1):
+def run_conditional(model, dsets, outdir, top_k, temperature, batch_size=1, num_images=10):
     if len(dsets.datasets) > 1:
         split = sorted(dsets.datasets.keys())[0]
         dset = dsets.datasets[split]
     else:
         dset = next(iter(dsets.datasets.values()))
     print("Dataset: ", dset.__class__.__name__)
-    for start_idx in trange(0,90,batch_size):
-        indices = list(range(start_idx, start_idx+batch_size))
-        example = default_collate([dset[i] for i in indices])
+    first_iteration = True
+    z_indices = None
+    c_indices = None
+    cshape = None
+    quant_c = None
+    for start_idx in trange(0, num_images, batch_size):
+        indices = list(range(start_idx, start_idx + batch_size))
+        if first_iteration:
+            example = default_collate([dset[i] for i in indices])
 
-        x = model.get_input("image", example).to(model.device)
-        for i in range(x.shape[0]):
-            save_image(x[i], os.path.join(outdir, "originals",
-                                          "{:06}.png".format(indices[i])))
+            x = model.get_input("image", example).to(model.device)
+            # for i in range(x.shape[0]):
+            #     save_image(x[i], os.path.join(outdir, "originals",
+            #                                   "{:06}.png".format(indices[i])))
 
-        cond_key = model.cond_stage_key
-        c = model.get_input(cond_key, example).to(model.device)
+            cond_key = model.cond_stage_key
+            c = model.get_input(cond_key, example).to(model.device)
 
-        scale_factor = 1.0
-        quant_z, z_indices = model.encode_to_z(x)
-        quant_c, c_indices = model.encode_to_c(c)
+            scale_factor = 1.0
+            quant_z, z_indices = model.encode_to_z(x)
+            quant_c, c_indices = model.encode_to_c(c)
 
-        cshape = quant_z.shape
+            cshape = quant_z.shape
+            first_iteration = False
 
-        xrec = model.first_stage_model.decode(quant_z)
-        for i in range(xrec.shape[0]):
-            save_image(xrec[i], os.path.join(outdir, "reconstructions",
-                                             "{:06}.png".format(indices[i])))
+        # xrec = model.first_stage_model.decode(quant_z)
+        # for i in range(xrec.shape[0]):
+        #     save_image(xrec[i], os.path.join(outdir, "reconstructions",
+        #                                      "{:06}.png".format(indices[i])))
 
-        if cond_key == "segmentation":
-            # get image from segmentation mask
-            num_classes = c.shape[1]
-            c = torch.argmax(c, dim=1, keepdim=True)
-            c = torch.nn.functional.one_hot(c, num_classes=num_classes)
-            c = c.squeeze(1).permute(0, 3, 1, 2).float()
-            c = model.cond_stage_model.to_rgb(c)
+        # if cond_key == "segmentation":
+        #     # get image from segmentation mask
+        #     num_classes = c.shape[1]
+        #     c = torch.argmax(c, dim=1, keepdim=True)
+        #     c = torch.nn.functional.one_hot(c, num_classes=num_classes)
+        #     c = c.squeeze(1).permute(0, 3, 1, 2).float()
+        #     c = model.cond_stage_model.to_rgb(c)
 
         idx = z_indices
 
@@ -64,14 +71,15 @@ def run_conditional(model, dsets, outdir, top_k, temperature, batch_size=1):
 
         idx[:,start:] = 0
         idx = idx.reshape(cshape[0],cshape[2],cshape[3])
-        start_i = start//cshape[3]
+        # idx[:, 0, 0] = torch.randint(0, 1024, (batch_size,))
+        # start_i = start//cshape[3]
+        start_i = 0
         start_j = start %cshape[3]
 
         cidx = c_indices
         cidx = cidx.reshape(quant_c.shape[0],quant_c.shape[2],quant_c.shape[3])
 
-        sample = True
-
+        sample = False
         for i in range(start_i,cshape[2]-0):
             if i <= 8:
                 local_i = i
@@ -80,6 +88,9 @@ def run_conditional(model, dsets, outdir, top_k, temperature, batch_size=1):
             else:
                 local_i = 8
             for j in range(start_j,cshape[3]-0):
+                # if i == 0 and j == 0:
+                #     j = 1
+
                 if j <= 8:
                     local_j = j
                 elif cshape[3]-j < 8:
@@ -112,7 +123,7 @@ def run_conditional(model, dsets, outdir, top_k, temperature, batch_size=1):
                     ix = torch.multinomial(probs, num_samples=1)
                 else:
                     _, ix = torch.topk(probs, k=1, dim=-1)
-                idx[:,i,j] = ix
+                idx[:,i,j] = ix[:, 0]
 
         xsample = model.decode_to_img(idx[:,:cshape[2],:cshape[3]], cshape)
         for i in range(xsample.shape[0]):
@@ -172,6 +183,17 @@ def get_parser():
         default=1.0,
         help="Sampling temperature.",
     )
+    parser.add_argument(
+        "--num_images",
+        type=int,
+        default=10,
+        help="Number of images to sample.",
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=1,
+        help="Batch size.")
     return parser
 
 
@@ -291,6 +313,8 @@ if __name__ == "__main__":
                                                            opt.temperature))
     os.makedirs(outdir, exist_ok=True)
     print("Writing samples to ", outdir)
+    print(f"Batch size: {opt.batch_size}")
+    print(f"Generating {opt.num_images} samples...")
     for k in ["originals", "reconstructions", "samples"]:
         os.makedirs(os.path.join(outdir, k), exist_ok=True)
-    run_conditional(model, dsets, outdir, opt.top_k, opt.temperature)
+    run_conditional(model=model, dsets=dsets, outdir=outdir, top_k=opt.top_k, temperature=opt.temperature, batch_size=opt.batch_size, num_images=opt.num_images)
