@@ -2,11 +2,9 @@ import torch
 import torch.nn as nn
 import yaml
 
-from bigdatasetGAN.biggan_pytorch import BigGAN
+from datasets.segmentation_dataset import SurgicalToolSegmentationDataset
 from transformer.cond_transformer import Net2NetTransformer
 import torch.nn.functional as F
-from training_utils import instantiate_from_config
-from omegaconf import OmegaConf
 from torch.utils.data import DataLoader
 import functools
 
@@ -23,8 +21,8 @@ class bn(nn.Module):
         # Momentum
         self.momentum = momentum
         # mean and variance
-        self.stored_mean = torch.zeros(output_size)
-        self.stored_var = torch.ones(output_size)
+        self.register_buffer("stored_mean", torch.zeros(output_size))
+        self.register_buffer("stored_var", torch.ones(output_size))
 
     def forward(self, x):
         return F.batch_norm(x, self.stored_mean, self.stored_var, self.gain,
@@ -51,8 +49,10 @@ class SegBlock(nn.Module):
         # Batchnorm layers
         # self.bn1 = BigGAN.layers.ccbn(in_channels, con_channels, self.which_linear, eps=1e-4, norm_style='bn')
         # self.bn2 = BigGAN.layers.ccbn(out_channels, con_channels, self.which_linear, eps=1e-4, norm_style='bn')
-        self.bn1 = bn(in_channels)
-        self.bn2 = bn(out_channels)
+        # self.bn1 = bn(in_channels)
+        # self.bn2 = bn(out_channels)
+        self.bn1 = nn.BatchNorm2d(in_channels)
+        self.bn2 = nn.BatchNorm2d(out_channels)
         # upsample layers
         self.upsample = upsample
 
@@ -75,8 +75,7 @@ class VQDatasetGAN(nn.Module):
                  transformer_ckpt=None,
                  transformer_config=None,
                  temperature=1.0,
-                 top_k=100,
-                 cuda=False):
+                 top_k=100):
         super(VQDatasetGAN, self).__init__()
         self.transformer_ckpt = transformer_ckpt
         self.transformer_config = transformer_config
@@ -93,6 +92,8 @@ class VQDatasetGAN(nn.Module):
             self.transformer_model.load_state_dict(state_dict, strict=True)
 
         self.transformer_model.eval()
+        for parameter in self.transformer_model.parameters():
+            parameter.requires_grad_(False)
 
         self.low_feature_size = 32
         self.mid_feature_size = 128
@@ -213,7 +214,7 @@ class VQDatasetGAN(nn.Module):
         }
         return feature_dict
 
-    def forward(self, input, cls):
+    def forward(self, input):
         x = self.transformer_model.get_input("image", input)
         c = self.transformer_model.get_input("coord", input)
         quant_z, z_indices = self.transformer_model.encode_to_z(x)
@@ -248,17 +249,17 @@ def test_model():
         'transformer_ckpt': '/mnt/bddd2eea-89b7-45b0-8345-df09af140cd6/research/surgical-tool-gen/Checkpoints/transformer/transformer_surgical_tools.ckpt',
         'transformer_config': 'bigdatasetGAN/config/transformer.yaml',
     }
-    dataset_config_path = 'bigdatasetGAN/config/dataset.yaml'
+    dataset_path = "/mnt/bddd2eea-89b7-45b0-8345-df09af140cd6/SSD/SurgicalToolDataset/SyntheticData/vqgan-v1/512x512/SegmentationDataset-v1"
     device = 'cuda'
-    dataset_config = OmegaConf.load(dataset_config_path)
-    data = instantiate_from_config(dataset_config.data)
-    train_dataset = instantiate_from_config(data.dataset_configs['train'])
+    train_dataset = SurgicalToolSegmentationDataset(dataset_path)
     dataloader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=1)
-    data_itr = iter(dataloader)
-    item = next(data_itr)
+    item = next(iter(dataloader))
+    item["image"] = item["image"].to(device)
+    item["coord"] = item["coord"].to(device)
+    item["mask"] = item["mask"].to(device)
     model = VQDatasetGAN(**params).to(device)
     model.eval()
-    mask = model(item, torch.tensor([1], dtype=torch.float))
+    mask = model(item)
     assert mask.shape[0] == 1
     assert mask.shape[1] == 1
     assert mask.shape[2] == 256

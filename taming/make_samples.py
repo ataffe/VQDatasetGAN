@@ -15,6 +15,23 @@ def save_image(x, path):
     Image.fromarray(x).resize((512, 512), resample=Image.Resampling.LANCZOS).save(path)
 
 
+def get_encoded(model, dataset, indices):
+    example = default_collate([dataset[i] for i in indices])
+    # (b, h, w, c)
+    x = model.get_input("image", example).to(model.device)
+    # for i in range(x.shape[0]):
+    #     save_image(x[i], os.path.join(outdir, "originals",
+    #                                   "{:06}.png".format(indices[i])))
+
+    cond_key = model.cond_stage_key
+    c = model.get_input(cond_key, example).to(model.device)
+
+    # scale_factor = 1.0
+    quant_z, z_indices = model.encode_to_z(x)
+    quant_c, c_indices = model.encode_to_c(c)
+
+    return quant_z, z_indices, quant_c, c_indices
+
 @torch.no_grad()
 def run_conditional(model, dsets, outdir, top_k, temperature, batch_size=1, num_images=10):
     if len(dsets.datasets) > 1:
@@ -28,25 +45,15 @@ def run_conditional(model, dsets, outdir, top_k, temperature, batch_size=1, num_
     c_indices = None
     cshape = None
     quant_c = None
+    half_sample = False
     for start_idx in trange(0, num_images, batch_size):
         indices = list(range(start_idx, start_idx + batch_size))
-        if first_iteration:
-            example = default_collate([dset[i] for i in indices])
-
-            x = model.get_input("image", example).to(model.device)
-            # for i in range(x.shape[0]):
-            #     save_image(x[i], os.path.join(outdir, "originals",
-            #                                   "{:06}.png".format(indices[i])))
-
-            cond_key = model.cond_stage_key
-            c = model.get_input(cond_key, example).to(model.device)
-
-            scale_factor = 1.0
-            quant_z, z_indices = model.encode_to_z(x)
-            quant_c, c_indices = model.encode_to_c(c)
-
-            cshape = quant_z.shape
+        if not half_sample and first_iteration:
+            quant_z, z_indices, quant_c, c_indices = get_encoded(model, dset, indices)
             first_iteration = False
+        elif half_sample:
+            quant_z, z_indices, quant_c, c_indices = get_encoded(model, dset, indices)
+        cshape = quant_z.shape
 
         # xrec = model.first_stage_model.decode(quant_z)
         # for i in range(xrec.shape[0]):
@@ -62,8 +69,6 @@ def run_conditional(model, dsets, outdir, top_k, temperature, batch_size=1, num_
         #     c = model.cond_stage_model.to_rgb(c)
 
         idx = z_indices
-
-        half_sample = False
         if half_sample:
             start = idx.shape[1]//2
         else:
@@ -71,15 +76,14 @@ def run_conditional(model, dsets, outdir, top_k, temperature, batch_size=1, num_
 
         idx[:,start:] = 0
         idx = idx.reshape(cshape[0],cshape[2],cshape[3])
-        # idx[:, 0, 0] = torch.randint(0, 1024, (batch_size,))
-        # start_i = start//cshape[3]
-        start_i = 0
+        #idx[:, 0, 0] = torch.randint(0, 1024, (batch_size,))
+        start_i = start//cshape[3]
+        # start_i = 0
         start_j = start %cshape[3]
-
         cidx = c_indices
         cidx = cidx.reshape(quant_c.shape[0],quant_c.shape[2],quant_c.shape[3])
 
-        sample = False
+        sample = True
         for i in range(start_i,cshape[2]-0):
             if i <= 8:
                 local_i = i

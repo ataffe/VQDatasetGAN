@@ -1,0 +1,126 @@
+import argparse
+
+from torch.utils.data import DataLoader
+
+from datasets.surgical_tool_dataset import SurgicalToolDataset
+from vqdatasetgan import VQDatasetGAN
+from pathlib import Path
+import torch
+from transformer.cond_transformer import Net2NetTransformer
+from tqdm import trange
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--num_images", type=int, help="Number of images to generate")
+    parser.add_argument("--transformer_config", type=str, help="Path to transformer config.yaml")
+    parser.add_argument("--transformer_ckpt", type=str, help="Path to transformer checkpoint.")
+    parser.add_argument("--seg_model_ckpt", type=str, help="Path to model checkpoint.")
+    parser.add_argument("--dataset_root", type=str, help="Path to dataset root.")
+    parser.add_argument("--temperature", type=float, help="Sampling Temperature", default=1.0)
+    parser.add_argument("--batch_size", type=int, help="Batch size", default=8)
+    parser.add_argument("--resolution", type=int, help="Resolution", default=256)
+    parser.add_argument("--device", type=str, help="Device", default="cpu")
+    parser.add_argument("--outdir", type=str, help="Output directory")
+    parser.add_argument("--sample", type=bool, help="Sample transformer predictions from multinomial distribution", default=False)
+    return parser.parse_args()
+
+def get_quantized_input(transformer: Net2NetTransformer, loader: torch.utils.data.DataLoader, device: str):
+    batch = next(iter(loader))
+    batch["image"] = batch["image"].to(device)
+    batch["coord"] = batch["coord"].to(device)
+    x = transformer.get_input("image", batch).to(device)
+    cond_key = transformer.cond_stage_key
+    c = transformer.get_input(cond_key, batch).to(device)
+
+    quant_z, z_indices = transformer.encode_to_z(x)
+    quant_c, c_indices = transformer.encode_to_c(c)
+
+    return quant_z, z_indices, quant_c, c_indices
+
+def create_dataset(model: VQDatasetGAN, dataloader: torch.utils.data.DataLoader, device: str):
+    model.eval()
+    model.to(device)
+
+    quant_z, z_indices, quant_c, c_indices = get_quantized_input(model.transformer_model, dataloader, device)
+    latent_shape = quant_z.shape
+
+    # TODO: PUT THIS STUFF IN A LOOP WITH A PROGRESS BAR, I FORGOT THE NAME
+    for _ in trange(args.num_images, args.batch_size, desc="Generating Synthetic Dataset"):
+    idx = z_indices
+    start = 0
+    idx[:, start:] = 0
+    start_i = start // latent_shape[3]
+    start_j = start % latent_shape[3]
+    cidx = c_indices
+    cidx = cidx.reshape(quant_c.shape[0],quant_c.shape[2],quant_c.shape[3])
+    for i in range(start_i, latent_shape[2] - 0):
+        if i <= 8:
+            local_i = i
+        elif latent_shape[2] - i < 8:
+            local_i = 16 - (latent_shape[2] - i)
+        else:
+            local_i = 8
+        for j in range(start_j, latent_shape[3] - 0):
+            # if i == 0 and j == 0:
+            #     j = 1
+
+            if j <= 8:
+                local_j = j
+            elif latent_shape[3] - j < 8:
+                local_j = 16 - (latent_shape[3] - j)
+            else:
+                local_j = 8
+
+            i_start = i - local_i
+            i_end = i_start + 16
+            j_start = j - local_j
+            j_end = j_start + 16
+            patch = idx[:, i_start:i_end, j_start:j_end]
+            patch = patch.reshape(patch.shape[0], -1)
+            cpatch = cidx[:, i_start:i_end, j_start:j_end]
+            cpatch = cpatch.reshape(cpatch.shape[0], -1)
+            patch = torch.cat((cpatch, patch), dim=1)
+            logits, _ = model.transformer(patch[:, :-1])
+            logits = logits[:, -256:, :]
+            logits = logits.reshape(latent_shape[0], 16, 16, -1)
+            logits = logits[:, local_i, local_j, :]
+            logits = logits / args.temperature
+
+            # apply softmax to convert to probabilities
+            probs = torch.nn.functional.softmax(logits, dim=-1)
+            # sample from the distribution or take the most likely
+            if args.sample:
+                ix = torch.multinomial(probs, num_samples=1)
+            else:
+                _, ix = torch.topk(probs, k=1, dim=-1)
+            idx[:, i, j] = ix[:, 0]
+
+    xsample = model.decode_to_img(idx[:, :latent_shape[2], :latent_shape[3]], latent_shape)
+    print(xsample.shape)
+    # TODO: GET MASK FROM SEGMENTATION MODEL
+
+
+
+if __name__ == "__main__":
+    args = get_args()
+
+    # Load dataset
+    dataset = SurgicalToolDataset(root_dir=args.dataset_root, size=256)
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=4)
+    # Load Model
+    model = VQDatasetGAN(
+        resolution=args.resolution,
+        out_dim=1,
+        transformer_ckpt=args.transformer_ckpt,
+        transformer_config=args.transformer_config)
+    model.load_state_dict(torch.load(args.seg_model_ckpt, weights_only=True))
+
+    # Create output directory if it does not exist
+    Path(args.outdir).mkdir(parents=True, exist_ok=True)
+
+    create_dataset(model, dataloader, args.device)
+
+
+
+
+
