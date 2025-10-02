@@ -31,21 +31,6 @@ def save_img(path: str, img: torch.Tensor, msk: torch.Tensor):
     img = cv2.addWeighted(img, 0.5, color_msk, 0.5, 0)
     cv2.imwrite(path, img)
 
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--num_images", type=int, help="Number of images to generate", default=1)
-    parser.add_argument("--transformer_config", type=str, help="Path to transformer config.yaml")
-    parser.add_argument("--transformer_ckpt", type=str, help="Path to transformer checkpoint.")
-    parser.add_argument("--seg_model_ckpt", type=str, help="Path to model checkpoint.")
-    parser.add_argument("--dataset_root", type=str, help="Path to dataset root.")
-    parser.add_argument("--temperature", type=float, help="Sampling Temperature", default=1.0)
-    parser.add_argument("--batch_size", type=int, help="Batch size", default=8)
-    parser.add_argument("--resolution", type=int, help="Resolution", default=256)
-    parser.add_argument("--device", type=str, help="Device", default="cpu")
-    parser.add_argument("--outdir", type=str, help="Output directory")
-    parser.add_argument("--sample", type=bool, help="Sample transformer predictions from multinomial distribution", default=True)
-    return parser.parse_args()
-
 def get_quantized_input(transformer: Net2NetTransformer, loader: torch.utils.data.DataLoader, device: str):
     batch = next(iter(loader))
     batch["image"] = batch["image"].to(device)
@@ -59,7 +44,15 @@ def get_quantized_input(transformer: Net2NetTransformer, loader: torch.utils.dat
 
     return quant_z, z_indices, quant_c, c_indices, batch["coord"]
 
-def sample_transformer(model: VQDatasetGAN, z_indices: torch.Tensor, c_indices: torch.Tensor, z_latent_shape: tuple, c_latent_shape, sample: bool = False):
+def sample_transformer(
+        model: VQDatasetGAN,
+        z_indices: torch.Tensor,
+        c_indices: torch.Tensor,
+        z_latent_shape: tuple,
+        c_latent_shape,
+        sample: bool = False,
+        topk: int = 5,
+        temp: float = 1.0):
     idx = z_indices
     start = 0
     idx[:, start:] = 0
@@ -76,9 +69,6 @@ def sample_transformer(model: VQDatasetGAN, z_indices: torch.Tensor, c_indices: 
         else:
             local_i = 8
         for j in range(start_j, z_latent_shape[3] - 0):
-            # if i == 0 and j == 0:
-            #     j = 1
-
             if j <= 8:
                 local_j = j
             elif z_latent_shape[3] - j < 8:
@@ -99,7 +89,10 @@ def sample_transformer(model: VQDatasetGAN, z_indices: torch.Tensor, c_indices: 
             logits = logits[:, -256:, :]
             logits = logits.reshape(z_latent_shape[0], 16, 16, -1)
             logits = logits[:, local_i, local_j, :]
-            logits = logits / args.temperature
+            logits = logits / temp
+
+            if topk is not None:
+                logits = model.transformer_model.top_k_logits(logits, topk)
 
             # apply softmax to convert to probabilities
             probs = torch.nn.functional.softmax(logits, dim=-1)
@@ -125,9 +118,19 @@ def create_dataset(model: VQDatasetGAN, dataloader: torch.utils.data.DataLoader,
     # Generate Images
     for _ in trange(0, num_images, batch_size, desc="Generating Synthetic Dataset"):
         # Sample latent space entries from transformer
-        sampled_indices = sample_transformer(model, z_indices, c_indices, quant_z.shape, quant_c.shape, in_args.sample)
+        sampled_indices = sample_transformer(
+            model,
+            z_indices,
+            c_indices,
+            quant_z.shape,
+            quant_c.shape,
+            in_args.sample,
+            in_args.topk,
+            in_args.temperature)
         # Decode quantized latent space to an image
-        decoded_image = model.transformer_model.decode_to_img(sampled_indices[:, :quant_z.shape[2], :quant_z.shape[3]], quant_z.shape)
+        decoded_image = model.transformer_model.decode_to_img(
+            sampled_indices[:, :quant_z.shape[2],:quant_z.shape[3]],
+            quant_z.shape)
 
         # b,c,h,w -> b,h,w,c
         decoded_image = decoded_image.permute(0, 2, 3, 1)
@@ -137,6 +140,22 @@ def create_dataset(model: VQDatasetGAN, dataloader: torch.utils.data.DataLoader,
         for idx in range(batch_size):
             save_img(outdir + f"/img{image_count}.jpg", decoded_image[idx, :, :, :], mask[idx, :, :, :])
             image_count += 1
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--num_images", type=int, help="Number of images to generate", default=1)
+    parser.add_argument("--transformer_config", type=str, help="Path to transformer config.yaml")
+    parser.add_argument("--transformer_ckpt", type=str, help="Path to transformer checkpoint.")
+    parser.add_argument("--seg_model_ckpt", type=str, help="Path to model checkpoint.")
+    parser.add_argument("--dataset_root", type=str, help="Path to dataset root.")
+    parser.add_argument("--temperature", type=float, help="Sampling Temperature", default=1.0)
+    parser.add_argument("--batch_size", type=int, help="Batch size", default=8)
+    parser.add_argument("--resolution", type=int, help="Resolution", default=256)
+    parser.add_argument("--device", type=str, help="Device", default="cpu")
+    parser.add_argument("--outdir", type=str, help="Output directory")
+    parser.add_argument("--sample", type=bool, help="Sample transformer predictions from multinomial distribution", default=True)
+    parser.add_argument("--topk", type=int, help="Top k predictions", default=5)
+    return parser.parse_args()
 
 
 if __name__ == "__main__":

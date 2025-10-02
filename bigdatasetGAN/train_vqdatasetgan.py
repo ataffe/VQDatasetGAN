@@ -48,7 +48,7 @@ def train(args):
     print("Model Summary")
     summary(model)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
     loss_fn = torch.nn.BCEWithLogitsLoss()
 
     print("Starting training with the following parameters:")
@@ -129,6 +129,7 @@ def parse_args():
     parser.add_argument("--transformer_config", type=str, required=True)
     parser.add_argument("--image_size", type=int, default=256)
     parser.add_argument("--save_dir", type=str, default="./checkpoints")
+    parser.add_argument("--weight_decay", type=float, default=5e-4)
     return parser.parse_args()
 
 
