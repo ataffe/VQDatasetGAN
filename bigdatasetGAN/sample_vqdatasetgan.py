@@ -1,6 +1,7 @@
 import argparse
 import numpy as np
 from torch.utils.data import DataLoader
+from ultralytics.utils.ops import masks2segments
 
 from datasets.surgical_tool_dataset import SurgicalToolDataset
 from vqdatasetgan import VQDatasetGAN
@@ -10,26 +11,29 @@ from transformer.cond_transformer import Net2NetTransformer
 from tqdm import trange
 import cv2
 import copy
+from typing import Optional
+import time
 
-def save_img(path: str, img: torch.Tensor, msk: torch.Tensor):
-    img = img.detach().cpu()
-    msk = msk.detach().cpu()
-
+def save_img(path: str, img: torch.Tensor, res: int, msk: Optional[torch.Tensor] = None) -> None:
     # Unnormalize image
+    img = img.detach().cpu()
     img = ((img + 1.0) * 127.5).clamp(0, 255).to(torch.uint8).numpy()
     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-    img = cv2.resize(img, (512, 512), interpolation=cv2.INTER_LANCZOS4)
-
-    msk = torch.where(msk > 0, 1, 0).permute(1,2,0).to(torch.uint8).numpy() * 255
-    msk = cv2.cvtColor(msk, cv2.COLOR_GRAY2BGR)
-    msk = cv2.resize(msk, (512, 512), interpolation=cv2.INTER_NEAREST_EXACT)
-
-    cv2.imwrite(path.replace(".jpg", "_original.jpg"), img)
-
-    color_msk = copy.deepcopy(img)
-    color_msk = np.where(msk == (255,255,255), (0,255,0), color_msk).astype(np.uint8)
-    img = cv2.addWeighted(img, 0.5, color_msk, 0.5, 0)
+    if img.shape[1] != res:
+        img = cv2.resize(img, (res, res), interpolation=cv2.INTER_LANCZOS4)
     cv2.imwrite(path, img)
+
+    if msk is not None:
+        msk = msk.detach().cpu()
+        msk = torch.where(msk > 0, 1, 0).permute(1,2,0).to(torch.uint8).numpy() * 255
+        msk = cv2.cvtColor(msk, cv2.COLOR_GRAY2BGR)
+        if msk.shape[1] != res:
+            msk = cv2.resize(msk, (res, res), interpolation=cv2.INTER_NEAREST_EXACT)
+
+        color_msk = copy.deepcopy(img)
+        color_msk = np.where(msk == (255,255,255), (0,255,0), color_msk).astype(np.uint8)
+        img = cv2.addWeighted(img, 0.5, color_msk, 0.5, 0)
+        cv2.imwrite(path.replace(".jpg", "_mask.jpg"), img)
 
 def get_quantized_input(transformer: Net2NetTransformer, loader: torch.utils.data.DataLoader, device: str):
     batch = next(iter(loader))
@@ -112,11 +116,18 @@ def create_dataset(model: VQDatasetGAN, dataloader: torch.utils.data.DataLoader,
     quant_z, z_indices, quant_c, c_indices, coord = get_quantized_input(model.transformer_model, dataloader, device)
     batch_size = in_args.batch_size
     num_images = in_args.num_images
+    gen_mask = in_args.gen_mask
+    resolution = in_args.resolution
     outdir = in_args.outdir
-    image_count = 0
+    image_count = in_args.start_from
+
+    print(f"Generating a synthetic dataset of {num_images} images")
+    print(f"Starting from image {image_count} / {num_images}")
+    print(f"Batch size: {batch_size}")
+    print(f"Output Resolution: {resolution}")
 
     # Generate Images
-    for _ in trange(0, num_images, batch_size, desc="Generating Synthetic Dataset"):
+    for _ in trange(in_args.start_from, num_images, batch_size, desc="Generating Synthetic Dataset"):
         # Sample latent space entries from transformer
         sampled_indices = sample_transformer(
             model,
@@ -128,17 +139,21 @@ def create_dataset(model: VQDatasetGAN, dataloader: torch.utils.data.DataLoader,
             in_args.topk,
             in_args.temperature)
         # Decode quantized latent space to an image
-        decoded_image = model.transformer_model.decode_to_img(
+        decoded_images = model.transformer_model.decode_to_img(
             sampled_indices[:, :quant_z.shape[2],:quant_z.shape[3]],
             quant_z.shape)
 
         # b,c,h,w -> b,h,w,c
-        decoded_image = decoded_image.permute(0, 2, 3, 1)
+        decoded_images = decoded_images.permute(0, 2, 3, 1)
+        masks = None
         # Get Mask for sampled image
-        mask = model({"image": decoded_image, "coord": coord})
+        if gen_mask:
+            masks = model({"image": decoded_images, "coord": coord})
         # Save image
         for idx in range(batch_size):
-            save_img(outdir + f"/img{image_count}.jpg", decoded_image[idx, :, :, :], mask[idx, :, :, :])
+            decoded_image = decoded_images[idx]
+            mask = masks[idx] if masks is not None else None
+            save_img(outdir + f"/img{image_count}.jpg", decoded_image, resolution, mask)
             image_count += 1
 
 def get_args():
@@ -150,11 +165,13 @@ def get_args():
     parser.add_argument("--dataset_root", type=str, help="Path to dataset root.")
     parser.add_argument("--temperature", type=float, help="Sampling Temperature", default=1.0)
     parser.add_argument("--batch_size", type=int, help="Batch size", default=8)
-    parser.add_argument("--resolution", type=int, help="Resolution", default=256)
+    parser.add_argument("--resolution", type=int, help="Resolution for output images e.g. 256, 512", default=256)
     parser.add_argument("--device", type=str, help="Device", default="cpu")
     parser.add_argument("--outdir", type=str, help="Output directory")
     parser.add_argument("--sample", type=bool, help="Sample transformer predictions from multinomial distribution", default=True)
     parser.add_argument("--topk", type=int, help="Top k predictions", default=5)
+    parser.add_argument("--gen_mask", action='store_true', help="Generate mask")
+    parser.add_argument("--start_from", type=int, help="Start generating images from this number", default=0)
     return parser.parse_args()
 
 
@@ -166,7 +183,7 @@ if __name__ == "__main__":
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
     # Load Model
     model = VQDatasetGAN(
-        resolution=args.resolution,
+        resolution=256,
         out_dim=1,
         transformer_ckpt=args.transformer_ckpt,
         transformer_config=args.transformer_config)
@@ -174,8 +191,16 @@ if __name__ == "__main__":
 
     # Create output directory if it does not exist
     Path(args.outdir).mkdir(parents=True, exist_ok=True)
-
+    start_time = time.perf_counter()
     create_dataset(model, dataloader, args)
+    end_time = time.perf_counter()
+
+    elapsed_time = end_time - start_time
+    minutes = int(elapsed_time // 60)
+    seconds = elapsed_time % 60
+
+    print(f"Execution time: {minutes} minutes {seconds:.2f} seconds")
+
 
 
 

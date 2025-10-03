@@ -55,6 +55,7 @@ def train(args):
     print("Batch size:", args.batch_size)
     print("Epochs:", args.epochs)
     print("Learning rate:", args.learning_rate)
+    print("Weight decay:", args.weight_decay)
     global_step = 0
     for epoch in range(args.epochs):
         min_loss = None
@@ -129,7 +130,7 @@ def parse_args():
     parser.add_argument("--transformer_config", type=str, required=True)
     parser.add_argument("--image_size", type=int, default=256)
     parser.add_argument("--save_dir", type=str, default="./checkpoints")
-    parser.add_argument("--weight_decay", type=float, default=5e-4)
+    parser.add_argument("--weight_decay", type=float, default=0.001)
     return parser.parse_args()
 
 
