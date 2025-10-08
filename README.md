@@ -1,6 +1,3 @@
 # SyntheticDataGen
 
-This is an implementation of Latent Diffusion modified to generate a synthetic dataset of
-surgical images and segmentation masks for surgical instruments. The goal is to be able to generate a synthetic dataset used to train a model for image segmentation using limited annotated data. I rearranged the code from
-the [Latent Diffusion Repo](https://github.com/CompVis/latent-diffusion) and added the segmentation head from
-[Big Dataset GAN](https://github.com/nv-tlabs/bigdatasetgan_code)
+This is a project designed to improve YOLO's performance on segmenting surgical instruments in real-time surgical video. This is an implementation of the VQGAN based version of [BigDatasetGAN](https://github.com/nv-tlabs/bigdatasetgan_code). I rearranged some of the code from [Taiming Transformers](https://github.com/CompVis/taming-transformers) and implemented the segmentation head for VQGAN from BigDatasetGAN based on the segmentation head from BigDatasetGAN. I am currently working on improving the images and segmentation masks generated and by using transfer learning with an intermediate domain by Training VQGAN on a subset of the SurgVu dataset (Porcine), fine-tuning on SARAS-MEAD (Human) dataset and then further fine-tuning on a smaller dataset of Transorbital Robotic Surgrey (Human domain specific).
