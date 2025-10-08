@@ -34,12 +34,12 @@ data:
     train:
       target: biggan_datasets.surgical_tool_dataset.SurgicalToolDataset
       params:
-        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgical-tool-dataset"
+        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgvu-train"
         size: 256
     validation:
       target: biggan_datasets.surgical_tool_dataset.SurgicalToolDataset
       params:
-        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgical-tool-test-dataset"
+        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgvu-validation"
         size: 256
 
 lightning:

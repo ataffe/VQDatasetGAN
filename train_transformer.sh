@@ -11,4 +11,5 @@
 #SBATCH -e jobs/train_transformer-%j.error
 module load conda3/4.X
 conda activate stylegan3
-srun python train.py --base transformer/config/surgical_tool_transformer.yaml -t --no-test
+srun python train.py --base transformer/config/surgical_tool_transformer.yaml -t --no-test \
+--resume /home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/logs/2025-08-31T09-32-53_surgical_tool_transformer/checkpoints/last.ckpt
