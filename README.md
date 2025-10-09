@@ -1,4 +1,4 @@
-# SyntheticDataGen
+# Generating a synthetic dataset for surgical instrument segmentation with VQDatasetGAN
 
 This is a project designed to improve YOLO's performance on segmenting surgical instruments in real-time surgical video.
 This is an implementation of the VQGAN based version of [BigDatasetGAN](https://github.com/nv-tlabs/bigdatasetgan_code).
