@@ -1,7 +1,6 @@
 import argparse
 import os.path
 
-import numpy as np
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -12,6 +11,7 @@ from pathlib import Path
 import torch
 from torchvision.utils import make_grid
 from torchinfo import summary
+import time
 
 def make_training_dir(save_dir):
     current_time = datetime.now().strftime('%b%d_%H-%M')
@@ -58,10 +58,10 @@ def train(args):
     print("Weight decay:", args.weight_decay)
     global_step = 0
     for epoch in range(args.epochs):
-        min_loss = None
-        loss = None
+        min_epoch_loss = None
         last_batch = None
         last_mask = None
+        avg_epoch_loss = 0.0
         print(f"#### Epoch: {epoch} ####")
         for iteration, batch in enumerate(dataloader):
             if iteration == args.epochs:
@@ -88,13 +88,17 @@ def train(args):
             log_writer.add_scalar("train/loss", loss.item(), global_step=global_step)
             if iteration % 10 == 0:
                 print("Training step: {0:05d}/{1:05d}, loss: {2:0.4f}".format(iteration, args.epochs, loss))
+            avg_epoch_loss += loss.item()
             last_batch = batch
             global_step += 1
 
-        if (min_loss is None or loss < min_loss) and epoch % 10 == 0:
-            min_loss = loss
-            print("Saving checkpoint")
-            torch.save(model.state_dict(), os.path.join(ckpt_dir, "checkpoint-latest.pth".format(epoch)))
+        avg_epoch_loss = avg_epoch_loss / len(dataloader)
+        log_writer.add_scalar("train/epoch_loss", avg_epoch_loss, global_step=global_step)
+
+        if (min_epoch_loss is None or avg_epoch_loss < min_epoch_loss) and epoch % 10 == 0:
+            min_epoch_loss = avg_epoch_loss
+            print(f"Saving checkpoint (epoch loss: {min_epoch_loss:0.4f})")
+            torch.save(model.state_dict(), os.path.join(ckpt_dir, "checkpoint-latest.pth"))
 
         if epoch % 10 == 0:
             # Log image
@@ -123,7 +127,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Trains VQDatasetGAN model')
     parser.add_argument("--dataset_path", type=str, required=True)
     parser.add_argument("--batch_size", type=int, default=2)
-    parser.add_argument("--epochs", type=int, default=200)
+    parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--learning_rate", type=float, default=0.001)
     parser.add_argument("--use_cuda", type=bool, default=True)
     parser.add_argument("--transformer_ckpt", type=str, required=True)
@@ -136,4 +140,7 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
+    start_time = time.perf_counter()
     train(args)
+    end_time = time.perf_counter()
+    print("Training time: {:0.1f} seconds.".format(end_time - start_time))

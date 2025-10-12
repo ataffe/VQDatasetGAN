@@ -3,6 +3,7 @@ import lightning.pytorch as pl
 import torch.nn.functional as F
 from contextlib import contextmanager
 from taming.modules.vqvae.quantize import VectorQuantizer2 as VectorQuantizer
+from taming.modules.vqvae.quantize import GumbelQuantize
 from vqgan.model.encoder import Encoder
 from vqgan.model.decoder import Decoder
 from training_utils import instantiate_from_config
@@ -110,10 +111,10 @@ class VQModel(pl.LightningModule):
         dec = self.decoder(quant)
         return dec
 
-    def decode_code(self, code_b):
-        quant_b = self.quantize.embed_code(code_b)
-        dec = self.decode(quant_b)
-        return dec
+    # def decode_code(self, code_b):
+    #     quant_b = self.quantize.embed_code(code_b)
+    #     dec = self.decode(quant_b)
+    #     return dec
 
     def forward(self, input, return_pred_indices=False):
         quant, diff, (_,_,ind) = self.encode(input)
@@ -277,7 +278,7 @@ class VQModelInterface(VQModel):
     def decode(self, h, force_not_quantize=False):
         # also go through quantization layer
         if not force_not_quantize:
-            quant, emb_loss, info = self.quantize(h)
+            quant, _, _ = self.quantize(h)
         else:
             quant = h
         quant = self.post_quant_conv(quant)
