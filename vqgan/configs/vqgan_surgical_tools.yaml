@@ -31,6 +31,7 @@ data:
   params:
     batch_size: 16
     wrap: False
+    crop_aug: True
     train:
       target: biggan_datasets.surgical_tool_dataset.SurgicalToolDataset
       params:

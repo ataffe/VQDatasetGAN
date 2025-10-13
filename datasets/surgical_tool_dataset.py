@@ -21,7 +21,6 @@ class ImagePaths(Dataset):
                             min_max_height=(self.size//2, self.size//2),
                             size=(self.size, self.size),
                             interpolation=cv2.INTER_LANCZOS4,
-                            mask_interpolation=cv2.INTER_NEAREST,
                             p=aug_p),
                     )
                 if geometric_aug:
