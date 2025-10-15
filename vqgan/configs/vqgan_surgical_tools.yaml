@@ -27,18 +27,18 @@ model:
         codebook_weight: 1.0
 
 data:
-  target: biggan_datasets.data_utils.DataModuleFromConfig
+  target: datasets.data_utils.DataModuleFromConfig
   params:
     batch_size: 16
     wrap: False
-    crop_aug: True
     train:
-      target: biggan_datasets.surgical_tool_dataset.SurgicalToolDataset
+      target: datasets.surgical_tool_dataset.SurgicalToolDataset
       params:
         root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgvu-train"
         size: 256
+        crop_aug: True
     validation:
-      target: biggan_datasets.surgical_tool_dataset.SurgicalToolDataset
+      target: datasets.surgical_tool_dataset.SurgicalToolDataset
       params:
         root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgvu-validation"
         size: 256
@@ -48,10 +48,10 @@ lightning:
     image_logger:
       target: loggers.ImageLogger
       params:
-        batch_frequency: 1000
+        batch_frequency: 2000
         max_images: 8
         increase_log_steps: True
 
   trainer:
     benchmark: True
-    gpus: 3
+    gpus: 2
