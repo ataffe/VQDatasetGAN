@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #SBATCH -J vqgan-train
 #SBATCH --mem=40G
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=8
 #SBATCH --gres=gpu:2
 #SBATCH --time=5-00:00:00
 #SBATCH --partition=gpu-qi

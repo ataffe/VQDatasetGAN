@@ -10,7 +10,7 @@
 #SBATCH -e jobs/nvidia-smi-%j.error
 
 module load conda3/4.X
+conda activate alex-ml
 echo $CUDA_VISIBLE_DEVICES
 echo $LD_LIBRARY_PATH
-conda activate alex-cuda-12
 python test.py

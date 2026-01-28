@@ -32,7 +32,7 @@ def vanilla_d_loss(logits_real, logits_fake):
 
 
 class VQLPIPSWithDiscriminator(nn.Module):
-    def __init__(self, disc_start, codebook_weight=1.0, pixelloss_weight=1.0,
+    def __init__(self, disc_start, gen_start, codebook_weight=1.0, pixelloss_weight=1.0,
                  disc_num_layers=3, disc_in_channels=3, disc_factor=1.0, disc_weight=1.0,
                  perceptual_weight=1.0, use_actnorm=False, disc_conditional=False,
                  disc_ndf=64, disc_loss="hinge"):
@@ -49,6 +49,7 @@ class VQLPIPSWithDiscriminator(nn.Module):
                                                  ndf=disc_ndf
                                                  ).apply(weights_init)
         self.discriminator_iter_start = disc_start
+        self.generator_iter_start = gen_start
         if disc_loss == "hinge":
             self.disc_loss = hinge_d_loss
         elif disc_loss == "vanilla":
@@ -71,7 +72,7 @@ class VQLPIPSWithDiscriminator(nn.Module):
         d_weight = torch.norm(nll_grads) / (torch.norm(g_grads) + 1e-4)
         d_weight = torch.clamp(d_weight, 0.0, 1e4).detach()
         d_weight = d_weight * self.discriminator_weight
-        return d_weight
+        return d_weight, nll_grads, g_grads
 
     def forward(self, codebook_loss, inputs, reconstructions, optimizer_idx,
                 global_step, last_layer=None, cond=None, split="train"):
@@ -98,13 +99,19 @@ class VQLPIPSWithDiscriminator(nn.Module):
             g_loss = -torch.mean(logits_fake)
 
             try:
-                d_weight = self.calculate_adaptive_weight(nll_loss, g_loss, last_layer=last_layer)
+                d_weight, nll_grads, g_grads = self.calculate_adaptive_weight(nll_loss, g_loss, last_layer=last_layer)
             except RuntimeError:
                 assert not self.training
                 d_weight = torch.tensor(0.0)
+                nll_grads = torch.tensor(0.0)
+                g_grads = torch.tensor(0.0)
 
-            disc_factor = adopt_weight(self.disc_factor, global_step, threshold=self.discriminator_iter_start)
+            #disc_factor = adopt_weight(self.disc_factor, global_step, threshold=self.discriminator_iter_start)
+            disc_factor = adopt_weight(self.disc_factor, global_step, threshold=self.generator_iter_start)
             loss = nll_loss + d_weight * disc_factor * g_loss + self.codebook_weight * codebook_loss.mean()
+            # Notes:
+            # if nll_grad (rec_avg) is small and g_grad is large, d_weight reduces the GAN loss impact
+            # if nll_grad (rec_avg) is large and g_grad is small, d_weight increases the GAN loss impact
 
             log = {"{}/total_loss".format(split): loss.clone().detach().mean(),
                    "{}/quant_loss".format(split): codebook_loss.detach().mean(),
@@ -114,6 +121,8 @@ class VQLPIPSWithDiscriminator(nn.Module):
                    "{}/d_weight".format(split): d_weight.detach(),
                    "{}/disc_factor".format(split): torch.tensor(disc_factor),
                    "{}/g_loss".format(split): g_loss.detach().mean(),
+                   "{}/nll_grads".format(split): nll_grads.detach().mean(),
+                   "{}/g_grads".format(split): g_grads.detach().mean()
                    }
             return loss, log
 

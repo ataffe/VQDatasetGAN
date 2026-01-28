@@ -166,7 +166,12 @@ if __name__ == "__main__":
             del trainer_args['gpus']
         trainer = Trainer(**trainer_args, strategy=DDPStrategy(find_unused_parameters=True, static_graph=True, gradient_as_bucket_view=True))
         trainer.logdir = logdir  ###
+        print("CUDA available:", torch.cuda.is_available())
+        print("CUDA device count:", torch.cuda.device_count())
         print(f'Training for {trainer.max_epochs} min epochs.')
+        print(f'Accelerator: {trainer.accelerator}')
+        print(f'Devices: {trainer.num_devices}')
+        print(f'Root device: {trainer.strategy.root_device}')
 
         # data
         data = instantiate_from_config(config.data)

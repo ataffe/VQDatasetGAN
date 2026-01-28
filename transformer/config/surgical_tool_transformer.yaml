@@ -6,20 +6,20 @@ model:
     transformer_config:
       target: taming.modules.transformer.mingpt.GPT
       params:
-        vocab_size: 1024
+        vocab_size: 2048
         block_size: 512
         n_layer: 24
         n_head: 16
-        n_embd: 1024
+        n_embd: 2048
         embd_pdrop: 0.1
         resid_pdrop: 0.1
         attn_pdrop: 0.1
     first_stage_config:
       target: vqgan.model.vqgan.VQModel
       params:
-        ckpt_path: logs/2025-08-26T02-02-37_autoencoder_FLIm/checkpoints/last.ckpt
+        ckpt_path: logs/2025-10-19T21-04-45_vqgan_surgical_tools/checkpoints/last.ckpt
         embed_dim: 256
-        n_embed: 1024
+        n_embed: 2048
         ddconfig:
           double_z: false
           z_channels: 256
@@ -46,20 +46,20 @@ model:
         down_factor: 16
 
 data:
-  target: biggan_datasets.data_utils.DataModuleFromConfig
+  target: datasets.data_utils.DataModuleFromConfig
   params:
     batch_size: 16
     wrap: False
-    num_workers: 4
+    num_workers: 8
     train:
-      target: biggan_datasets.surgical_tool_dataset.SurgicalToolDataset
+      target: datasets.surgical_tool_dataset.SurgicalToolDataset
       params:
-        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgvu-mesad-train"
+        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgvu-train"
         size: 256
     validation:
-      target: biggan_datasets.surgical_tool_dataset.SurgicalToolDataset
+      target: datasets.surgical_tool_dataset.SurgicalToolDataset
       params:
-        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgvu-mesad-validation"
+        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgvu-validation"
         size: 256
 
 lightning:
@@ -70,3 +70,8 @@ lightning:
         batch_frequency: 2000
         max_images: 8
         increase_log_steps: True
+
+trainer:
+    benchmark: True
+    accelerator: cuda
+    devices: auto

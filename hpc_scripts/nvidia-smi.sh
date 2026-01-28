@@ -10,3 +10,4 @@
 #SBATCH -o jobs/nvidia-smi-%j.output
 #SBATCH -e jobs/nvidia-smi-%j.error
 nvidia-smi
+echo $CUDA_VISIBLE_DEVICES

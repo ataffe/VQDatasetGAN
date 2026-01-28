@@ -1,0 +1,8 @@
+lightning
+albumentations
+omegaconf
+pillow
+opencv-python
+transformers==4.25.1
+einops
+tensorboard
