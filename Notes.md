@@ -1,3 +1,6 @@
+### VQGAN Architecture
+![](images/vqgan-architecture.png)
+
 
 1 / 27 / 26
 ## Transformer Notes:
