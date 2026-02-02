@@ -17,6 +17,8 @@ class Encoder(nn.Module):
         self.num_res_blocks = num_res_blocks
         self.resolution = resolution
         self.in_channels = in_channels
+        # TODO: Don't remember what I was doing here...I'll come back to it later.
+        # self.activation_function = nn.GELU(approximate='tanh')
 
         # downsampling
         self.conv_in = torch.nn.Conv2d(in_channels,

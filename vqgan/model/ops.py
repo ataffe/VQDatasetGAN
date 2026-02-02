@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 def nonlinearity(x):
-    # swish
+    # SiLU
     return x*torch.sigmoid(x)
 
 

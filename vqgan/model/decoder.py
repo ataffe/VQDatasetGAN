@@ -20,6 +20,8 @@ class Decoder(nn.Module):
         self.in_channels = in_channels
         self.give_pre_end = give_pre_end
         self.tanh_out = tanh_out
+        # TODO: See decoder
+        # self.activation_function = nn.GELU(approximate='tanh')
 
         # compute in_ch_mult, block_in and curr_res at lowest res
         # block_in = 128*4 = 512

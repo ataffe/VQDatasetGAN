@@ -28,7 +28,8 @@ class VQModel(pl.LightningModule):
                  lr_g_factor=1.0,
                  remap=None,
                  sane_index_shape=False, # tell vector quantizer to return indices as bhw
-                 use_ema=False
+                 use_ema=False,
+                 fine_tune=False
                  ):
         super().__init__()
         self.embed_dim = embed_dim
@@ -68,6 +69,19 @@ class VQModel(pl.LightningModule):
         self.scheduler_config = scheduler_config
         self.lr_g_factor = lr_g_factor
         self.automatic_optimization = False
+
+        if fine_tune:
+            self._freeze_parameters()
+
+    # Freezes the parameters for all layers except the last in the
+    # encoder, decoder and discriminator.
+    def _freeze_parameters(self):
+        for name, param in self.encoder.named_parameters():
+            print(f"Freezing {name}")
+        for name, param in self.decoder.named_parameters():
+            print(f"Freezing {name}")
+        for name, param in self.loss.discriminator.named_parameters():
+            print(f"Freezing {name}")
 
     @contextmanager
     def ema_scope(self, context=None):
