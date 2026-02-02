@@ -1,11 +1,12 @@
 model:
   base_learning_rate: 4.5e-6
-  fine-
   # From: https://github.com/CompVis/taming-transformers/blob/3ba01b241669f5ade541ce990f7650a3b8f65318/configs/faceshq_vqgan.yaml
   target: vqgan.model.vqgan.VQModel
   params:
     embed_dim: 256 # length of vector for each code
     n_embed: 2048 # size of code codebook
+    fine_tune: True
+
     ddconfig:
       double_z: False
       z_channels: 256

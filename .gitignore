@@ -216,3 +216,4 @@ yolo/runs
 taming/modules/autoencoder/lipips/vgg.pth
 taming/samples
 presentations
+vqgan_parameter_names.txt

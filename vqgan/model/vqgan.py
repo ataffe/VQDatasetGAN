@@ -71,17 +71,38 @@ class VQModel(pl.LightningModule):
         self.automatic_optimization = False
 
         if fine_tune:
+            print(f'Freezing parameters for fine-tuning.')
             self._freeze_parameters()
 
     # Freezes the parameters for all layers except the last in the
     # encoder, decoder and discriminator.
     def _freeze_parameters(self):
+        num_layers = len(self.encoder.down)
+        live_layers = ['mid', f'down.{num_layers - 1}', 'norm_out', 'conv_out']
         for name, param in self.encoder.named_parameters():
-            print(f"Freezing {name}")
+            is_live_param = any([True if layer in name else False for layer in live_layers])
+            if is_live_param:
+                continue
+            else:
+                param.requires_grad = False
+
+        num_layers = len(self.decoder.up)
+        live_layers = [f'up.{num_layers - 1}', 'norm_out', 'conv_out']
         for name, param in self.decoder.named_parameters():
-            print(f"Freezing {name}")
+            is_live_param = any([True if layer in name else False for layer in live_layers])
+            if is_live_param:
+                continue
+            else:
+                param.requires_grad = False
+
+        num_layers = len(self.loss.discriminator.main)
+        live_layers = [f'main.{num_layers - 1}', f'main.{num_layers - 2}']
         for name, param in self.loss.discriminator.named_parameters():
-            print(f"Freezing {name}")
+            is_live_param = any([True if layer in name else False for layer in live_layers])
+            if is_live_param:
+                continue
+            else:
+                param.requires_grad = False
 
     @contextmanager
     def ema_scope(self, context=None):
