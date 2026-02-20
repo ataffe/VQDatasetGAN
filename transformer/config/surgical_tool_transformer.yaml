@@ -1,6 +1,7 @@
 model:
   base_learning_rate: 4.5e-06
   target: transformer.cond_transformer.Net2NetTransformer
+  monitor: val/loss
   params:
     cond_stage_key: coord
     transformer_config:
@@ -17,7 +18,7 @@ model:
     first_stage_config:
       target: vqgan.model.vqgan.VQModel
       params:
-        ckpt_path: logs/2025-10-19T21-04-45_vqgan_surgical_tools/checkpoints/last.ckpt
+        ckpt_path: logs/2026-02-18T14-09-24_vqgan_flim_488nm_fine_tuning/checkpoints/last.ckpt
         embed_dim: 256
         n_embed: 2048
         ddconfig:
@@ -54,12 +55,12 @@ data:
     train:
       target: datasets.surgical_tool_dataset.SurgicalToolDataset
       params:
-        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgvu-train"
+        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/FLIm-488nm/train"
         size: 256
     validation:
       target: datasets.surgical_tool_dataset.SurgicalToolDataset
       params:
-        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/surgvu-validation"
+        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/FLIm-488nm/val"
         size: 256
 
 lightning:

@@ -26,6 +26,7 @@ class Net2NetTransformer(pl.LightningModule):
                  pkeep=1.0,
                  sos_token=0,
                  unconditional=False,
+                 monitor="val/loss"
                  ):
         super().__init__()
         self.be_unconditional = unconditional
@@ -39,7 +40,7 @@ class Net2NetTransformer(pl.LightningModule):
             permuter_config = {"target": "taming.modules.transformer.permuter.Identity"}
         self.permuter = instantiate_from_config(config=permuter_config)
         self.transformer = instantiate_from_config(config=transformer_config)
-
+        self.monitor = monitor
         if ckpt_path is not None:
             self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
         self.downsample_cond_size = downsample_cond_size

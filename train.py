@@ -38,7 +38,7 @@ if __name__ == "__main__":
             paths = opt.resume.split("/")
             # idx = len(paths)-paths[::-1].index("logs")+1
             # logdir = "/".join(paths[:idx])
-            logdir = "/".join(paths[:-2])
+            # logdir = "/".join(paths[:-2])
             ckpt = opt.resume
         else:
             assert os.path.isdir(opt.resume), opt.resume
@@ -63,6 +63,8 @@ if __name__ == "__main__":
         logdir = os.path.join(opt.logdir, nowname)
         seed_everything(opt.seed)
         trainer = None
+        if opt.fine_tune:
+            opt.resume_from_checkpoint = opt.fine_tune
     ckptdir = os.path.join(logdir, "checkpoints")
     cfgdir = os.path.join(logdir, "configs")
     print("config dir", cfgdir)
@@ -113,6 +115,8 @@ if __name__ == "__main__":
             print(f"Monitoring {model.monitor} as checkpoint metric.")
             default_modelckpt_cfg["params"]["monitor"] = model.monitor
             default_modelckpt_cfg["params"]["save_top_k"] = 1
+        else:
+            print("No monitor key found in model config.")
 
         if "modelcheckpoint" in lightning_config:
             modelckpt_cfg = lightning_config.modelcheckpoint

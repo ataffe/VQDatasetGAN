@@ -1,5 +1,5 @@
 model:
-  base_learning_rate: 4.5e-6
+  base_learning_rate: 4.5e-6 # default
   # From: https://github.com/CompVis/taming-transformers/blob/3ba01b241669f5ade541ce990f7650a3b8f65318/configs/faceshq_vqgan.yaml
   target: vqgan.model.vqgan.VQModel
   params:
@@ -36,13 +36,13 @@ data:
     train:
       target: datasets.surgical_tool_dataset.SurgicalToolDataset
       params:
-        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/FLIm-488nm/train"
+        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/saras-mesad-train"
         size: 256
         crop_aug: True
     validation:
       target: datasets.surgical_tool_dataset.SurgicalToolDataset
       params:
-        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/FLIm-488nm/val"
+        root_dir: "/home/ataffe/SyntheticData/SyntheticDataGenForFLImViz/data/saras-mesad-validation"
         size: 256
 
 lightning:

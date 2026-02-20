@@ -78,7 +78,7 @@ class VQModel(pl.LightningModule):
     # encoder, decoder and discriminator.
     def _freeze_parameters(self):
         num_layers = len(self.encoder.down)
-        live_layers = ['mid', f'down.{num_layers - 1}', 'norm_out', 'conv_out']
+        live_layers = ['mid', f'down.{num_layers - 1}', f'down.{num_layers - 2}', 'norm_out', 'conv_out']
         for name, param in self.encoder.named_parameters():
             is_live_param = any([True if layer in name else False for layer in live_layers])
             if is_live_param:
@@ -87,7 +87,7 @@ class VQModel(pl.LightningModule):
                 param.requires_grad = False
 
         num_layers = len(self.decoder.up)
-        live_layers = [f'up.{num_layers - 1}', 'norm_out', 'conv_out']
+        live_layers = [f'up.{num_layers - 1}', f'up.{num_layers - 2}', 'norm_out', 'conv_out']
         for name, param in self.decoder.named_parameters():
             is_live_param = any([True if layer in name else False for layer in live_layers])
             if is_live_param:
@@ -96,7 +96,7 @@ class VQModel(pl.LightningModule):
                 param.requires_grad = False
 
         num_layers = len(self.loss.discriminator.main)
-        live_layers = [f'main.{num_layers - 1}', f'main.{num_layers - 2}']
+        live_layers = [f'main.{num_layers - num}' for num in range(1, 10)]  # keep the last 8 layers of the discriminator
         for name, param in self.loss.discriminator.named_parameters():
             is_live_param = any([True if layer in name else False for layer in live_layers])
             if is_live_param:

@@ -110,6 +110,14 @@ def get_parser(**parser_kwargs):
         help="resume from logdir or checkpoint in logdir",
     )
     parser.add_argument(
+        "--fine_tune",
+        type=str,
+        const=True,
+        default=None,
+        nargs="?",
+        help="fine-tune using checkpoint",
+    )
+    parser.add_argument(
         "-b",
         "--base",
         nargs="*",
