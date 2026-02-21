@@ -21,11 +21,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from nanochat.common import get_dist_info, print0
-from nanochat.optim import MuonAdamW, DistMuonAdamW
+from transformer.nanoGPT.common import get_dist_info, print0
+from transformer.nanoGPT.optim import MuonAdamW, DistMuonAdamW
 
 # Our custom Flash Attention module that automatically uses FA3 on Hopper+ and SDPA fallback elsewhere
-from nanochat.flash_attention import flash_attn
+from transformer.nanoGPT.flash_attention import flash_attn
 
 @dataclass
 class GPTConfig:
@@ -145,7 +145,7 @@ class Block(nn.Module):
         return x
 
 
-class GPT(nn.Module):
+class NanoGPT(nn.Module):
     def __init__(self, config, pad_vocab_size_to=64):
         """
         NOTE a major footgun: this __init__ function runs in meta device context (!!)

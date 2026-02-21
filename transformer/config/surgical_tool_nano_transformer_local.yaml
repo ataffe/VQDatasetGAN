@@ -1,24 +1,24 @@
 model:
   base_learning_rate: 4.5e-06
-  target: transformer.cond_transformer.Net2NetTransformer
+  target: transformer.nano_transformer.Net2NetTransformer
   monitor: val/loss
   params:
     cond_stage_key: coord
     transformer_config:
-      target: taming.modules.transformer.mingpt.GPT
+      target: transformer.nanoGPT.nanogpt.NanoGPT
       params:
-        vocab_size: 2048
-        block_size: 512 # = 256 (cond image) + 256 (image)
-        n_layer: 24
-        n_head: 16
-        n_embd: 2048
-        embd_pdrop: 0.1
-        resid_pdrop: 0.1
-        attn_pdrop: 0.1
+        config:
+          sequence_len: 512 # = Block size in minGPT
+          vocab_size: 2048
+          n_layer: 24
+          n_head: 16
+          n_kv_head: 16
+          n_embd: 2048
+          window_pattern: SSSL
     first_stage_config:
       target: vqgan.model.vqgan.VQModel
       params:
-        ckpt_path: logs/2026-02-18T14-09-24_vqgan_flim_488nm_fine_tuning/checkpoints/last.ckpt
+        ckpt_path: /mnt/bddd2eea-89b7-45b0-8345-df09af140cd6/research/surgical-tool-gen/Checkpoints/vqgan/2026-02-18T14-09-24_vqgan_flim_488nm_fine_tuning/vqgan_checkpoint.ckpt
         embed_dim: 256
         n_embed: 2048
         ddconfig:

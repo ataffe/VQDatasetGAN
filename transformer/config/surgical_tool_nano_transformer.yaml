@@ -5,12 +5,12 @@ model:
   params:
     cond_stage_key: coord
     transformer_config:
-      target: taming.modules.transformer.mingpt.GPT
-      params:
+      target: transformer.nanoGPT.nanogpt.NanoGPT
+      config:
         vocab_size: 2048
-        block_size: 512 # = 256 (cond image) + 256 (image)
-        n_layer: 24
-        n_head: 16
+        n_layer: 12
+        n_head: 166
+        n_kv_head: 6
         n_embd: 2048
         embd_pdrop: 0.1
         resid_pdrop: 0.1
